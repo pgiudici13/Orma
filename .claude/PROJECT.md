@@ -72,6 +72,11 @@ Nessun repository di codice esiste ancora: questa è l'architettura target, non 
 Orma/
 ├── CLAUDE.md              # istruzioni operative per Claude Code
 ├── IDEA.md                # visione di prodotto originale
+├── app/                    # Next.js App Router (bootstrap Fase 0)
+├── public/
+├── supabase/
+│   ├── config.toml
+│   └── migrations/          # vuota, nessuno schema ancora
 ├── docs/
 │   ├── PRODUCT.md
 │   ├── UX.md
@@ -86,7 +91,9 @@ Orma/
     └── CORRECTIONS.md
 ```
 
-Non esiste ancora codice applicativo, `package.json`, configurazione di build, asset o schema Supabase. Il progetto è in **fase di fondazione documentale**.
+**Fase 0 (Foundation) completata**: Next.js 16 (TypeScript, App Router, strict mode) con ESLint + Prettier, Tailwind CSS (DEC-009), progetto Supabase creato (org "Scout", regione eu-central-1, piano free), progetto Vercel collegato al repository GitHub `pgiudici13/Orma` con preview deployment automatici. Deploy di produzione raggiungibile su https://orma-topaz.vercel.app. Nessuno schema DB applicativo ancora presente (Fase 3+).
+
+Nota operativa: la CLI `supabase` locale non è collegata al progetto remoto (`supabase link` richiede `supabase login` interattivo, non eseguibile in sessione headless) — le migrazioni verranno applicate tramite l'MCP Supabase (`apply_migration`) finché non si esegue il login manuale.
 
 ## 7. Modello dati ad alto livello
 
@@ -152,9 +159,10 @@ Dettaglio: [`docs/PERMISSIONS.md`](../docs/PERMISSIONS.md), SDD §14–16.
 
 ## 12. Deployment
 
-- Vercel per il frontend (target).
-- Supabase Cloud per il backend.
-- Nessuna pipeline CI/CD, nessun ambiente configurato ad oggi.
+- Vercel per il frontend: progetto `orma` (org `pedro13-projects`) collegato al repository GitHub `pgiudici13/Orma`, preview deployment automatici per branch/PR. Deploy di produzione: https://orma-topaz.vercel.app.
+- Supabase Cloud per il backend: progetto `orma` (org "Scout", `ouffyxrhxhzqcduvgpon`, eu-central-1, piano free).
+- Environment variables Supabase (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) configurate su Vercel per production/preview/development e in `.env.local` (non committato) per lo sviluppo locale.
+- Nessuna pipeline CI/CD oltre ai preview/production deployment automatici di Vercel.
 
 ## 13. Testing
 

@@ -238,3 +238,34 @@ Decisione esplicita dell'utente: gestione manuale da parte del proprietario del 
 
 - Le tabelle di contenuto ufficiale (`specialita`, `competenza`, `tappa`) non hanno policy RLS di INSERT/UPDATE/DELETE per alcun ruolo utente applicativo; le scritture avvengono solo tramite migrazioni/seed con credenziali di servizio, mai da un client autenticato come utente normale.
 - Se in futuro servisse un flusso di aggiornamento più frequente del catalogo, va aperta una nuova decisione (non anticipata qui).
+
+---
+
+## DEC-009 — Styling: Tailwind per UI 2D, CSS dedicato per materiali 3D
+
+### Status
+
+Accepted
+
+### Context
+
+P0-T03 richiede di scegliere la soluzione di styling per la UI non-3D (form, pannelli contenuto) e di registrare la decisione, valutando se Tailwind è coerente con l'estetica realistica richiesta da `docs/DESIGN.md` o se serve un approccio più custom (CSS Modules per texture/materiali).
+
+### Decision
+
+Usare Tailwind CSS per la UI di sistema (form, pannelli contenuto, testo, layout 2D). I materiali della scena 3D (texture, illuminazione, superfici realistiche) restano fuori da Tailwind: CSS/inline dedicato o proprietà dei materiali Three.js/R3F, non utility class.
+
+### Why
+
+- Tailwind riduce l'attrito per la UI di editing/contenuto (form note, pannelli, impostazioni), che non deve essere fotorealistica ma solo leggibile e accessibile.
+- La richiesta di realismo fotografico (`docs/DESIGN.md`) riguarda la scena tavolo/carte in 3D, non i pannelli di contenuto testuale — le due superfici sono già concettualmente separate in `docs/UX.md`.
+- Evita di reinventare uno stack CSS custom per la parte 2D quando Tailwind è lo standard nell'ecosistema Next.js (coerente con DEC-001).
+
+### Alternatives
+
+- **CSS Modules puro per tutto**: più controllo su ogni classe, ma più lento da scrivere per la UI di sistema senza un beneficio reale sull'estetica del tavolo, dove il realismo si gioca nella scena 3D e negli asset, non nei pannelli di form.
+
+### Consequences
+
+- `tailwind.config`/`postcss.config` fanno parte del bootstrap Next.js (P0-T01/T03).
+- Le regole di `docs/DESIGN.md` (no estetica SaaS/glassmorphism/cartoon) si applicano comunque alle classi Tailwind usate: niente card generiche, niente glassmorphism, anche nei pannelli 2D.

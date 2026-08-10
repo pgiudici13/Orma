@@ -1,0 +1,8 @@
+.next
+node_modules
+
+# Documentazione di prodotto/prosa: non riformattata automaticamente.
+IDEA.md
+CLAUDE.md
+docs/
+.claude/
