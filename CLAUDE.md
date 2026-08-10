@@ -16,8 +16,24 @@ Read these files before making significant changes:
 - `docs/DATA_MODEL.md`
 - `docs/PERMISSIONS.md`
 - `docs/DESIGN.md`
+- `docs/SDD.md`
 
 These documents define the product intent.
+
+---
+
+## Project Knowledge
+
+`.claude/PROJECT.md` is the current source of truth for the project's state and architecture. `docs/SDD.md` is the full technical specification. Architectural decisions are logged in `.claude/DECISIONS.md`. Lessons and mistakes are logged in `.claude/CORRECTIONS.md`. The build plan is `.claude/TODO.md`.
+
+Before making significant changes:
+
+1. Read `.claude/PROJECT.md`.
+2. Read the relevant section(s) of `.claude/TODO.md`.
+3. Read relevant entries in `.claude/DECISIONS.md` — do not contradict an `Accepted` decision without flagging it first.
+4. Read relevant entries in `.claude/CORRECTIONS.md`.
+
+Keep these documents synchronized with the actual project state: update `PROJECT.md`/`docs/SDD.md` when architecture changes, log new entries in `DECISIONS.md` for non-trivial technical choices, and log new entries in `CORRECTIONS.md` when a mistake or wrong assumption is found. Do not implement arbitrary features or architecture changes that contradict an `Accepted` decision or the product concept below without raising it first.
 
 ---
 
@@ -168,20 +184,22 @@ Do not implement the entire product in one pass.
 
 Build in small, testable milestones.
 
-Preferred order:
+Preferred order (mirrors `.claude/TODO.md` phase-by-phase — keep these two in sync, do not let them drift):
 
-1. foundation;
-2. visual prototype;
-3. table scene;
-4. card interaction;
-5. card detail;
-6. personal notes/progress;
-7. authentication;
-8. database;
-9. permissions;
-10. Reparto;
-11. archive;
-12. polish.
+0. Foundation;
+1. Design / Visual Prototype;
+2. Interactive Table;
+3. Specialità / Competenze / Tappe;
+4. Personal Data;
+5. Authentication;
+6. Supabase (Reparto/organization schema);
+7. Reparto;
+8. Maestri;
+9. Calendario / Archivio;
+10. Security / Accessibility / Performance;
+11. Production QA.
+
+See `.claude/TODO.md` for the granular task breakdown (`P<phase>-T<n>`) of each phase.
 
 ---
 

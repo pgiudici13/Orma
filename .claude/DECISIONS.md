@@ -1,0 +1,240 @@
+# ORMA — Architecture Decisions
+
+Registro delle decisioni architetturali. Non cancellare decisioni superate: marcarle come `Superseded` e collegare quella che le sostituisce.
+
+Stati possibili: `Accepted`, `Proposed`, `Open Decision`, `Superseded`.
+
+---
+
+## DEC-001 — Stack frontend: React + Next.js su Vercel
+
+### Status
+
+Proposed
+
+### Context
+
+`IDEA.md` indica una "direzione tecnica iniziale" (React/Next.js, Vercel, Supabase) esplicitamente dichiarata non vincolante. Il repository non contiene ancora codice, `package.json` o configurazione di alcun framework.
+
+### Decision
+
+Adottare React con Next.js come framework frontend, deploy su Vercel, in assenza di ragioni concrete per deviare.
+
+### Why
+
+- Next.js su Vercel è la combinazione con il minor attrito operativo (deploy, preview, edge functions) e si integra bene con Supabase.
+- App Router di Next.js consente di isolare la scena 3D (client component) dal resto dell'app.
+- Riduce la superficie di configurazione rispetto a un setup Vite+React separato da gestire a mano su Vercel.
+
+### Alternatives
+
+- **Vite + React (SPA)**: più semplice per una scena 3D pura, ma perde SSR/route handling nativo e richiede più configurazione manuale per il deploy Vercel.
+- **Remix**: nessun vantaggio chiaro per questo caso d'uso rispetto a Next.js, meno integrazione nativa con l'ecosistema Vercel.
+
+### Consequences
+
+- Il routing e i data-fetching pattern devono rispettare le convenzioni Next.js.
+- La scena 3D (Three.js/R3F) dovrà essere isolata in Client Components per evitare problemi di SSR con WebGL.
+
+---
+
+## DEC-002 — Backend: Supabase (Postgres + Auth + Storage + RLS)
+
+### Status
+
+Accepted
+
+### Context
+
+`IDEA.md` e `docs/PERMISSIONS.md` indicano esplicitamente Supabase come piattaforma backend, con obbligo di Row Level Security e divieto di esporre la service-role key al client.
+
+### Decision
+
+Usare Supabase come unico backend: Postgres per i dati relazionali, Supabase Auth per l'identità, Supabase Storage per gli asset, RLS per l'autorizzazione a livello database.
+
+### Why
+
+- Allineato esplicitamente con la direzione di prodotto in `IDEA.md` e con i requisiti di privacy in `docs/PERMISSIONS.md` (autorizzazione mai solo lato client).
+- Evita di costruire un livello di autorizzazione custom quando RLS copre il caso d'uso (dati per utente, dati per Reparto).
+
+### Alternatives
+
+- Backend custom (Node/Express + Postgres gestito a mano): più controllo ma più superficie da mantenere, nessun vantaggio dato il fit di Supabase con i requisiti.
+
+### Consequences
+
+- Ogni tabella con dati personali o di Reparto richiede policy RLS esplicite prima di essere considerata completa.
+- Le migrazioni Supabase sono l'unico modo accettato per modificare lo schema.
+
+---
+
+## DEC-003 — 3D: Three.js / React Three Fiber, uso selettivo
+
+### Status
+
+Proposed
+
+### Context
+
+Il concept di prodotto richiede una scena tavolo realistica e immersiva, ma sia `docs/DESIGN.md` sia `CLAUDE.md` vietano esplicitamente l'uso del 3D "perché è disponibile" e impongono di valutare sempre l'impatto sulle performance mobile.
+
+### Decision
+
+Usare React Three Fiber (wrapper React di Three.js) per la scena tavolo, le carte e gli oggetti interattivi. Le superfici puramente testuali/di editing (form note, impostazioni) restano DOM/React standard, non 3D.
+
+### Why
+
+- R3F si integra meglio con lo state management React rispetto a Three.js puro.
+- Mantiene il confine netto tra "scena immersiva" (3D) e "contenuto/editing" (2D) richiesto da `docs/UX.md` e `docs/DESIGN.md`.
+
+### Alternatives
+
+- Three.js puro senza R3F: più controllo a basso livello, ma integrazione più manuale con React e maggiore rischio di divergenza tra stato React e scena.
+- CSS 3D / pseudo-3D senza WebGL: più leggero e più semplice da rendere accessibile, ma non raggiunge il livello di realismo richiesto dal concept del tavolo.
+
+### Consequences
+
+- Le carte devono usare un modello 3D riutilizzabile con texture diverse, non geometria duplicata per carta (vincolo esplicito in `CLAUDE.md`).
+- Serve un budget di performance esplicito (draw calls, texture size, shadow map) da definire in fase di prototipo visivo.
+
+---
+
+## DEC-004 — Gestione stato applicativo
+
+### Status
+
+Open Decision
+
+### Context
+
+Nessuna scelta di state management (Zustand, Redux, React Context, Jotai, TanStack Query per i dati server) è menzionata in nessun documento di prodotto esistente.
+
+### Decision
+
+Da decidere in fase di design tecnico, prima della Fase 2 (Tavolo interattivo) del piano in `TODO.md`.
+
+### Why
+
+N/A — nessuna decisione presa.
+
+### Alternatives
+
+- Da valutare: stato scena 3D separato da stato dati server (es. Zustand per stato scena/camera, TanStack Query o Server Components per dati Supabase).
+
+### Consequences
+
+Bloccante solo per l'implementazione della scena interattiva (Fase 2), non per la fase di fondazione/design attuale.
+
+---
+
+## DEC-005 — Asset pipeline PDF → texture web
+
+### Status
+
+Open Decision (parzialmente sbloccata)
+
+### Context
+
+I PDF sorgente sono ora disponibili in `files/` alla radice del repository (`Carta di Specialità.pdf`, `CARTA DI COMPETENZA.pdf`, `Manuale-della-Branca-EG.pdf` — quest'ultimo verosimilmente la fonte per le Tappe). `docs/DESIGN.md` conferma che il PDF originale deve essere trattato come fonte master e mai modificato distruttivamente.
+
+`files/` non è ancora la posizione definitiva prevista dalla pipeline (`assets/source/` — vedi SDD §11): è una cartella di staging temporanea creata fuori dalla struttura `docs/`/`.claude/` di questo bootstrap.
+
+### Decision
+
+Definita la forma della pipeline (PDF → estrazione → processing → WebP/PNG → texture/viewer) e ora anche la disponibilità dei PDF reali. Restano da decidere in fase di implementazione (Fase 0/3 del piano):
+
+- lo strumento di estrazione specifico (es. `pdf-lib`, `pdf.js`, conversione manuale) — verificabile solo ispezionando i 3 PDF reali (testo selezionabile vs scansione, layout);
+- la migrazione di `files/` → `assets/source/` secondo la convenzione della pipeline.
+
+### Why
+
+I PDF erano assenti al momento della stesura iniziale di questo bootstrap; ora sono stati forniti dall'utente. Lo strumento di estrazione va comunque scelto ispezionando il contenuto reale dei file, non anticipato qui.
+
+### Alternatives
+
+Da valutare in P3-T02a una volta ispezionato il contenuto dei 3 PDF.
+
+### Consequences
+
+La Fase 3 (Specialità/Competenze/Tappe, asset pipeline) non è più bloccata da assenza totale di materiale sorgente. Rimane da fare, come primo task pratico: spostare/riorganizzare `files/` in `assets/source/` e ispezionare i PDF per scegliere lo strumento di estrazione — prima però va completata la fondazione (Fase 0), come da questo bootstrap che non implementa codice.
+
+---
+
+## DEC-006 — Testing strategy
+
+### Status
+
+Open Decision
+
+### Context
+
+Nessun framework di test è ancora scelto; non esiste codice da testare.
+
+### Decision
+
+Da definire quando si introduce il primo codice applicativo. Direzione minima attesa: type-check (`tsc --noEmit`) e lint obbligatori ad ogni commit significativo; test unitari per logica di dominio (permessi, calcolo progresso); test E2E leggeri per i flussi critici (login, apertura carta) quando l'app avrà una UI stabile.
+
+### Alternatives
+
+Vitest + Testing Library per unit/component; Playwright per E2E — scelta standard nell'ecosistema Next.js/Vercel, da confermare in fase di implementazione.
+
+### Consequences
+
+Nessuna finché non esiste codice. Da chiudere prima della Fase 2.
+
+---
+
+## DEC-007 — Deployment target
+
+### Status
+
+Accepted
+
+### Context
+
+`IDEA.md` indica Vercel esplicitamente per frontend/deployment.
+
+### Decision
+
+Vercel come piattaforma di hosting/deploy del frontend Next.js, con Supabase come backend gestito separatamente.
+
+### Why
+
+Coerente con la direzione di prodotto dichiarata e con DEC-001.
+
+### Alternatives
+
+Nessuna valutata: nessuna ragione emersa per deviare dalla direzione già indicata in `IDEA.md`.
+
+### Consequences
+
+CI/CD basato su preview deployment Vercel per branch/PR; variabili d'ambiente Supabase (URL, anon key) configurate come environment variable Vercel, mai committate.
+
+---
+
+## DEC-008 — Gestione del contenuto ufficiale (Specialità/Competenze/Tappe)
+
+### Status
+
+Accepted
+
+### Context
+
+Nessun documento di prodotto specifica chi popola/mantiene il catalogo ufficiale di Specialità, Competenze e Tappe. Il modello ruoli in `docs/SDD.md` §6 prevede solo un "Admin di Reparto" scoped al singolo Reparto, non adatto a un catalogo condiviso cross-Reparto.
+
+### Decision
+
+Nessun ruolo applicativo dedicato e nessuna UI di editing per il contenuto ufficiale. Il proprietario del progetto popola e mantiene il catalogo ufficiale direttamente (seed/migrazioni Supabase), prima del deploy finale di ogni release che introduce nuovo contenuto ufficiale.
+
+### Why
+
+Decisione esplicita dell'utente: gestione manuale da parte del proprietario del progetto, senza costruire un ruolo/UI di amministrazione del catalogo che al momento non serve.
+
+### Alternatives
+
+- Ruolo "Content Admin" globale con UI dedicata: scartato per ora, nessun bisogno concreto identificato.
+
+### Consequences
+
+- Le tabelle di contenuto ufficiale (`specialita`, `competenza`, `tappa`) non hanno policy RLS di INSERT/UPDATE/DELETE per alcun ruolo utente applicativo; le scritture avvengono solo tramite migrazioni/seed con credenziali di servizio, mai da un client autenticato come utente normale.
+- Se in futuro servisse un flusso di aggiornamento più frequente del catalogo, va aperta una nuova decisione (non anticipata qui).
