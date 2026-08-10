@@ -37,6 +37,15 @@ Relazioni:
 - Tappa
 - note
 
+Campi legati a privacy/consenso (vedi [DEC-010](../.claude/DECISIONS.md#dec-010--registrazione-minorenni-auto-registrazione-con-consenso-genitoriale-verificato)):
+
+- `data_nascita`
+- `consenso_privacy_accettato_at`, `privacy_policy_versione`
+- `stato_consenso_genitoriale` (`non_richiesto` | `in_attesa` | `confermato`) — `non_richiesto` per chi si registra a 14 anni o più
+- `genitore_email`, `consenso_genitoriale_token`, `consenso_genitoriale_confermato_at` (solo se `stato_consenso_genitoriale ≠ non_richiesto`)
+
+Un profilo con `stato_consenso_genitoriale = 'in_attesa'` non deve essere leggibile/scrivibile per nessuna funzionalità applicativa oltre al proprio flusso di attesa — enforced via RLS, non solo UI.
+
 ---
 
 ## Reparto

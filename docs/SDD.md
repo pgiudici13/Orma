@@ -213,8 +213,8 @@ Lo schema SQL dettagliato (colonne, vincoli, indici) è definito durante l'imple
 ## 14. Authentication
 
 - Supabase Auth come unico provider di identità.
-- Metodo (email/password, magic link, OAuth) da confermare in fase di implementazione — nessun documento di prodotto lo specifica; **Open Decision**.
-- Considerare che parte dell'utenza (E/G) può essere minorenne: eventuali vincoli su registrazione autonoma minori/consenso genitoriale sono un'**Open Decision** che va chiarita prima di implementare la registrazione (vedi Blocking Questions).
+- Metodo esatto (email/password vs magic link) da confermare in fase di implementazione — **Open Decision** minore, non bloccante.
+- Registrazione minorenni: **chiusa**, vedi [DEC-010](../.claude/DECISIONS.md#dec-010--registrazione-minorenni-auto-registrazione-con-consenso-genitoriale-verificato). Auto-registrazione con data di nascita; sotto i 14 anni l'account resta in stato `in_attesa_consenso_genitoriale` finché un genitore/tutore non conferma tramite link univoco inviato via email. Provider email transazionale da scegliere in P5-T01 (nuova dipendenza esterna).
 
 ## 15. Authorization
 

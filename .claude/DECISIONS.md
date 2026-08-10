@@ -269,3 +269,81 @@ Usare Tailwind CSS per la UI di sistema (form, pannelli contenuto, testo, layout
 
 - `tailwind.config`/`postcss.config` fanno parte del bootstrap Next.js (P0-T01/T03).
 - Le regole di `docs/DESIGN.md` (no estetica SaaS/glassmorphism/cartoon) si applicano comunque alle classi Tailwind usate: niente card generiche, niente glassmorphism, anche nei pannelli 2D.
+
+---
+
+## DEC-010 — Registrazione minorenni: auto-registrazione con consenso genitoriale verificato
+
+### Status
+
+Accepted
+
+### Context
+
+`docs/SDD.md` §14 e `.claude/PROJECT.md` §11 segnalavano come **Open Decision** il metodo di autenticazione e, in particolare, il trattamento degli utenti E/G minorenni. Il D.Lgs. 101/2018 (art. 2-quinquies Codice Privacy) fissa a 14 anni la soglia sotto la quale il consenso al trattamento dati richiede anche quello di chi esercita la responsabilità genitoriale.
+
+Decisione utente: progetto personale, community iniziale piccola e nota (un Reparto), ma con auto-registrazione (non solo account creati da un adulto) e consenso genitoriale raccolto in-app, non fuori dal prodotto.
+
+### Decision
+
+Flusso di registrazione:
+
+1. L'E/G si registra da solo con email, password, nome, **data di nascita**.
+2. Se età calcolata ≥ 14 anni: consenso proprio, tramite accettazione esplicita (checkbox non pre-selezionata) dell'Informativa Privacy in fase di registrazione. Account attivo dopo la verifica email standard di Supabase Auth.
+3. Se età calcolata < 14 anni: la registrazione richiede anche l'**email di un genitore/tutore**. L'account viene creato in stato `in_attesa_consenso_genitoriale`: nessun accesso alle funzionalità applicative oltre a una pagina di attesa, nessuna scrittura/lettura di dati diversi dal proprio profilo minimo. Al genitore viene inviata un'email con un link univoco e a scadenza (token firmato) che, se cliccato, registra il consenso con timestamp e verione della Privacy Policy accettata, e sblocca l'account.
+4. Il consenso genitoriale deve risultare da un'azione positiva e verificabile (click sul link), non dalla sola apertura dell'email o da una dichiarazione del minore.
+
+Restano **Open Decision separate e non bloccanti per lo schema dati**:
+
+- provider email transazionale per l'invio del link al genitore (nuova dipendenza esterna, es. Resend/Postmark — da scegliere in fase di implementazione P5-T01, non anticipato qui).
+- metodo di autenticazione esatto (password vs magic link) per l'E/G stesso.
+
+### Why
+
+- Decisione esplicita dell'utente (auto-registrazione con consenso in-app, non invito da adulto).
+- La soglia di 14 anni e la richiesta di un'azione positiva e verificabile per il consenso genitoriale riflettono l'art. 2-quinquies del Codice Privacy italiano e l'Art. 8 GDPR.
+- Registrare timestamp e versione della Privacy Policy accettata rende il consenso dimostrabile (principio di accountability, Art. 5.2 GDPR), non solo dichiarato.
+- Bloccare l'accesso ai dati fino a consenso confermato evita di trattare dati di un minore <14 anni prima che il consenso genitoriale sia verificato.
+
+### Alternatives
+
+- **Invito da adulto (account creati solo da un Capo Reparto)**: più semplice legalmente (il consenso lo raccoglie l'adulto una tantum, anche fuori dall'app) ma scartata esplicitamente dall'utente in favore dell'auto-registrazione.
+- **Nessuna distinzione per età**: non conforme, scartata.
+
+### Consequences
+
+- Lo schema `Profile` deve includere `data_nascita`, `consenso_privacy_accettato_at`, `privacy_policy_versione`, `stato_consenso_genitoriale` (`non_richiesto` | `in_attesa` | `confermato`), `genitore_email`, `consenso_genitoriale_token`, `consenso_genitoriale_confermato_at` (vedi `docs/DATA_MODEL.md`).
+- Le policy RLS su ogni tabella con dati personali devono negare accesso quando `stato_consenso_genitoriale = 'in_attesa'`.
+- P5-T01 (`TODO.md`) si aggiorna per includere esplicitamente questo flusso.
+
+---
+
+## DEC-011 — Provider email transazionale: Resend
+
+### Status
+
+Accepted
+
+### Context
+
+[DEC-010](#dec-010--registrazione-minorenni-auto-registrazione-con-consenso-genitoriale-verificato) richiede l'invio di un'email al genitore/tutore con il link di conferma consenso. Nessun provider email era ancora scelto (P5-T01b).
+
+### Decision
+
+Usare [Resend](https://resend.com) per l'invio dell'email di richiesta consenso genitoriale.
+
+### Why
+
+- Integrazione nativa e minima con Next.js/Vercel (stesso ecosistema di DEC-001/DEC-007), SDK ufficiale (`resend`) leggero.
+- Piano gratuito sufficiente per il volume atteso di un progetto personale a uso limitato ("in pochi").
+- Nessuna infrastruttura SMTP da gestire.
+
+### Alternatives
+
+- Postmark: paragonabile, nessun vantaggio concreto per questo volume, aggiunge solo scelta senza beneficio.
+- SMTP custom (es. tramite provider email personale): più attrito operativo, deliverability meno affidabile per email transazionali.
+
+### Consequences
+
+- Nuova dipendenza esterna: richiede una API key Resend (`RESEND_API_KEY`) come variabile d'ambiente server-side, mai esposta al client.
+- Richiede un mittente verificato (dominio o indirizzo) su Resend prima che l'invio funzioni in produzione.

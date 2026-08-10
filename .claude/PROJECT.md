@@ -153,9 +153,10 @@ Il popolamento e la manutenzione del catalogo ufficiale (contenuto derivato da q
 - Autorizzazione sempre verificata server-side/database-side (RLS), mai solo lato client.
 - Nessuna service-role key esposta al client.
 - Privacy by default: dato privato salvo condivisione esplicita.
-- Considerare che una parte degli utenti (E/G) può essere minorenne: nessuna funzionalità di ricerca/esposizione pubblica di profili senza una strategia di privacy e consenso esplicita — vedi Open Decision.
+- Registrazione minorenni: auto-registrazione con data di nascita; sotto i 14 anni l'account resta bloccato in attesa di consenso genitoriale verificato via link email univoco (consenso, non semplice apertura) — vedi [DEC-010](DECISIONS.md#dec-010--registrazione-minorenni-auto-registrazione-con-consenso-genitoriale-verificato).
+- Nessuna funzionalità di ricerca/esposizione pubblica di profili senza rispettare comunque privacy by default.
 
-Dettaglio: [`docs/PERMISSIONS.md`](../docs/PERMISSIONS.md), SDD §14–16.
+Dettaglio: [`docs/PERMISSIONS.md`](../docs/PERMISSIONS.md), SDD §14–16, [`docs/legal/PRIVACY_POLICY.md`](../docs/legal/PRIVACY_POLICY.md).
 
 ## 12. Deployment
 

@@ -212,12 +212,27 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 
 ## Phase 5 — Authentication
 
-### P5-T01 — Supabase Auth (registrazione/login)
+### P5-T00 — Schema `profiles`: campi età/consenso + RLS
 
-- **Obiettivo**: flusso di registrazione e login con Supabase Auth.
+- **Obiettivo**: migrazione Supabase per la tabella `profiles` con i campi di consenso definiti in [DEC-010](DECISIONS.md#dec-010--registrazione-minorenni-auto-registrazione-con-consenso-genitoriale-verificato) (`data_nascita`, `consenso_privacy_accettato_at`, `privacy_policy_versione`, `stato_consenso_genitoriale`, `genitore_email`, `consenso_genitoriale_token`, `consenso_genitoriale_confermato_at`) e policy RLS che negano accesso quando `stato_consenso_genitoriale = 'in_attesa'`.
 - **Dipendenze**: P0-T04.
-- **Criteri di completamento**: sessione persistente, redirect corretto a Home-tavolo post-login.
-- **Test necessari**: test E2E login/logout.
+- **File/componenti**: `supabase/migrations/`.
+- **Criteri di completamento**: migrazione applicata; test RLS che verifica che un profilo `in_attesa` non sia leggibile/scrivibile fuori dal proprio flusso di attesa.
+- **Test necessari**: test RLS dedicato.
+
+### P5-T01 — Supabase Auth (registrazione/login) con verifica età
+
+- **Obiettivo**: flusso di registrazione e login con Supabase Auth; calcolo età da `data_nascita` in fase di registrazione; se età < 14 anni, richiedere email del genitore/tutore e portare l'account in stato `in_attesa_consenso_genitoriale` invece di attivarlo subito.
+- **Dipendenze**: P0-T04, P5-T00.
+- **Criteri di completamento**: sessione persistente, redirect corretto a Home-tavolo post-login per account attivi; account `in_attesa_consenso_genitoriale` reindirizzati a una pagina di attesa, non alla Home-tavolo.
+- **Test necessari**: test E2E login/logout; test registrazione ≥14 anni vs <14 anni.
+
+### P5-T01b — Provider email transazionale e conferma consenso genitoriale
+
+- **Obiettivo**: scegliere un provider email transazionale (nuova dipendenza esterna, da valutare esplicitamente — es. Resend/Postmark) per inviare al genitore/tutore il link univoco di conferma consenso; endpoint che valida il token, registra `consenso_genitoriale_confermato_at` e sblocca l'account.
+- **Dipendenze**: P5-T00, P5-T01.
+- **Criteri di completamento**: click sul link sblocca l'account in stato `confermato`; link a scadenza e monouso; nessun dato del minore accessibile prima della conferma.
+- **Test necessari**: test token scaduto/già usato/non valido; test che l'account resti bloccato finché non confermato.
 
 ### P5-T02 — Profilo utente e appartenenza a Reparto
 
