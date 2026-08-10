@@ -91,7 +91,7 @@ Orma/
     └── CORRECTIONS.md
 ```
 
-**Fase 0 (Foundation) completata**: Next.js 16 (TypeScript, App Router, strict mode) con ESLint + Prettier, Tailwind CSS (DEC-009), progetto Supabase creato (org "Scout", regione eu-central-1, piano free), progetto Vercel collegato al repository GitHub `pgiudici13/Orma` con preview deployment automatici. Deploy di produzione raggiungibile su https://orma-topaz.vercel.app. Nessuno schema DB applicativo ancora presente (Fase 3+).
+**Fase 0 (Foundation) completata**: Next.js 16 (TypeScript, App Router, strict mode) con ESLint + Prettier, Tailwind CSS (DEC-009), progetto Supabase creato (org "Scout", regione eu-central-1, piano free), progetto Vercel collegato al repository GitHub `pgiudici13/Orma` con preview deployment automatici. Deploy di produzione raggiungibile su https://orma-scout.vercel.app. Nessuno schema DB applicativo ancora presente (Fase 3+).
 
 Nota operativa: la CLI `supabase` locale non è collegata al progetto remoto (`supabase link` richiede `supabase login` interattivo, non eseguibile in sessione headless) — le migrazioni verranno applicate tramite l'MCP Supabase (`apply_migration`) finché non si esegue il login manuale.
 
@@ -160,7 +160,7 @@ Dettaglio: [`docs/PERMISSIONS.md`](../docs/PERMISSIONS.md), SDD §14–16, [`doc
 
 ## 12. Deployment
 
-- Vercel per il frontend: progetto `orma` (org `pedro13-projects`) collegato al repository GitHub `pgiudici13/Orma`, preview deployment automatici per branch/PR. Deploy di produzione: https://orma-topaz.vercel.app.
+- Vercel per il frontend: progetto `orma` (org `pedro13-projects`) collegato al repository GitHub `pgiudici13/Orma`, preview deployment automatici per branch/PR. Deploy di produzione: https://orma-scout.vercel.app.
 - Supabase Cloud per il backend: progetto `orma` (org "Scout", `ouffyxrhxhzqcduvgpon`, eu-central-1, piano free).
 - Environment variables Supabase (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) configurate su Vercel per production/preview/development e in `.env.local` (non committato) per lo sviluppo locale.
 - Nessuna pipeline CI/CD oltre ai preview/production deployment automatici di Vercel.
