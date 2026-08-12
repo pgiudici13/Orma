@@ -23,6 +23,9 @@ export async function login(
   });
 
   if (error) {
+    if (error.code === "email_not_confirmed") {
+      return { error: "Conferma prima la tua email: controlla la posta." };
+    }
     return { error: "Credenziali non valide." };
   }
 

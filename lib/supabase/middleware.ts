@@ -7,6 +7,7 @@ const PUBLIC_PATHS = [
   "/consenso",
   "/privacy",
   "/attesa-consenso",
+  "/auth",
 ];
 
 export async function updateSession(request: NextRequest) {

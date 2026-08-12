@@ -89,5 +89,5 @@ export async function registrati(
     redirect("/attesa-consenso");
   }
 
-  redirect("/");
+  redirect("/registrati/controlla-email");
 }

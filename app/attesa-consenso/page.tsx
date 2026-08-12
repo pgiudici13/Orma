@@ -8,10 +8,11 @@ export default function AttesaConsensoPage() {
           Account in attesa di conferma
         </h1>
         <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-          Abbiamo inviato un&apos;email al genitore/tutore indicato in fase di
-          registrazione. Il tuo account sarà attivo non appena confermerà il
-          consenso al trattamento dei tuoi dati, come richiesto dalla legge per
-          chi ha meno di 14 anni.
+          Servono due conferme prima che l&apos;account sia attivo: la tua email
+          (controlla la posta e clicca sul link che ti abbiamo inviato) e il
+          consenso di un genitore/tutore, come richiesto dalla legge per chi ha
+          meno di 14 anni. Abbiamo inviato l&apos;email di richiesta consenso
+          all&apos;indirizzo indicato in fase di registrazione.
         </p>
       </div>
     </div>
