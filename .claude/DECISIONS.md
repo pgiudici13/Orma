@@ -470,3 +470,36 @@ Nessun post-processing 3D. La sfocatura e il calo di luminosità sono una transi
 
 - L'oggetto a fuoco viene sfocato insieme al resto della scena: la leggibilità del contenuto è affidata al pannello DOM, non alla carta 3D. Il blur è tenuto basso (4px) proprio perché l'oggetto resti riconoscibile.
 - Se in futuro servisse un blur selettivo (sfondo sfocato, oggetto nitido), va riaperta questa decisione.
+
+---
+
+## DEC-015 — Visibilità admin read-only cross-utente
+
+### Status
+
+Accepted
+
+### Context
+
+Con lo schema di Fase 3 in produzione (percorso personale con RLS `auth.uid() = profile_id` su ogni tabella), il proprietario del progetto ha chiesto una visibilità su tutti gli utenti anche dentro l'app ORMA — non solo dalla dashboard Supabase, che già dà accesso completo bypassando la RLS. Nessun account viene creato da Claude Code per l'utente (regola di sicurezza non derogabile): l'utente si registra da `/registrati` come chiunque altro; il flag admin viene attivato manualmente via SQL dopo la registrazione.
+
+### Decision
+
+- Colonna `profiles.is_admin boolean not null default false`, funzione `public.is_admin()` (stesso pattern di `has_active_consent()`, `security invoker`).
+- Policy RLS **aggiuntive** (permissive, si sommano in OR alle policy `_own` esistenti — nessuna policy esistente modificata) per SELECT su `profiles`, `user_specialita`, `user_competenza`, `user_tappa`, `nota`, `maestro_esterno`.
+- Nessuna policy insert/update/delete per admin: sola lettura.
+- Il vincolo di `DEC-010` resta prioritario: un profilo con `stato_consenso_genitoriale = 'in_attesa'` resta invisibile anche all'admin, in ogni policy admin.
+- Pagina `/admin` (`app/admin/page.tsx`): redirect a `/` se il profilo corrente non ha `is_admin = true`; altrimenti tabella read-only di profili + conteggi di progresso.
+
+### Why
+
+Richiesta esplicita del proprietario del progetto. Non contraddice `DEC-008`: quella decisione riguarda solo l'editing del contenuto ufficiale (Specialità/Competenze/Tappe), qui invariato — l'admin non scrive né su contenuto ufficiale né sui dati personali altrui.
+
+### Alternatives
+
+Nessuna: l'accesso via dashboard Supabase esiste già, ma non copre il caso "vedere i dati dentro l'esperienza dell'app".
+
+### Consequences
+
+- Prima apertura del modello "privacy by default" a un ruolo con visibilità estesa. Ogni tabella futura con dati personali (Fase 4/6/7/9) che debba essere visibile ad admin richiede la stessa policy additiva read-only con lo stesso vincolo di esclusione `in_attesa` — non estendere l'admin a scrittura senza riaprire questa decisione.
+- Nessuna UI pubblicizza `/admin` a chi non è admin: la pagina esiste ma non è raggiungibile né linkata per gli altri utenti.
