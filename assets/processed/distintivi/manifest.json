@@ -1,0 +1,426 @@
+{
+  "specialita": [
+    {
+      "slug": "allevatore",
+      "nome": "Allevatore",
+      "immagine_path": "distintivi/specialita/allevatore.webp"
+    },
+    {
+      "slug": "alpinista",
+      "nome": "Alpinista",
+      "immagine_path": "distintivi/specialita/alpinista.webp"
+    },
+    {
+      "slug": "amico-degli-animali",
+      "nome": "Amico degli animali",
+      "immagine_path": "distintivi/specialita/amico-degli-animali.webp"
+    },
+    {
+      "slug": "amico-del-quartiere",
+      "nome": "Amico del quartiere",
+      "immagine_path": "distintivi/specialita/amico-del-quartiere.webp"
+    },
+    {
+      "slug": "archeologo",
+      "nome": "Archeologo",
+      "immagine_path": "distintivi/specialita/archeologo.webp"
+    },
+    {
+      "slug": "artigiano",
+      "nome": "Artigiano",
+      "immagine_path": "distintivi/specialita/artigiano.webp"
+    },
+    {
+      "slug": "artista-di-strada",
+      "nome": "Artista di strada",
+      "immagine_path": "distintivi/specialita/artista-di-strada.webp"
+    },
+    {
+      "slug": "astronomo",
+      "nome": "Astronomo",
+      "immagine_path": "distintivi/specialita/astronomo.webp"
+    },
+    {
+      "slug": "atleta",
+      "nome": "Atleta",
+      "immagine_path": "distintivi/specialita/atleta.webp"
+    },
+    {
+      "slug": "attore",
+      "nome": "Attore",
+      "immagine_path": "distintivi/specialita/attore.webp"
+    },
+    {
+      "slug": "battelliere",
+      "nome": "Battelliere",
+      "immagine_path": "distintivi/specialita/battelliere.webp"
+    },
+    {
+      "slug": "boscaiolo",
+      "nome": "Boscaiolo",
+      "immagine_path": "distintivi/specialita/boscaiolo.webp"
+    },
+    {
+      "slug": "botanico",
+      "nome": "Botanico",
+      "immagine_path": "distintivi/specialita/botanico.webp"
+    },
+    {
+      "slug": "campeggiatore",
+      "nome": "Campeggiatore",
+      "immagine_path": "distintivi/specialita/campeggiatore.webp"
+    },
+    {
+      "slug": "canoista",
+      "nome": "Canoista",
+      "immagine_path": "distintivi/specialita/canoista.webp"
+    },
+    {
+      "slug": "cantante",
+      "nome": "Cantante",
+      "immagine_path": "distintivi/specialita/cantante.webp"
+    },
+    {
+      "slug": "carpentiere-navale",
+      "nome": "Carpentiere navale",
+      "immagine_path": "distintivi/specialita/carpentiere-navale.webp"
+    },
+    {
+      "slug": "ciclista",
+      "nome": "Ciclista",
+      "immagine_path": "distintivi/specialita/ciclista.webp"
+    },
+    {
+      "slug": "collezionista",
+      "nome": "Collezionista",
+      "immagine_path": "distintivi/specialita/collezionista.webp"
+    },
+    {
+      "slug": "coltivatore",
+      "nome": "Coltivatore",
+      "immagine_path": "distintivi/specialita/coltivatore.webp"
+    },
+    {
+      "slug": "corrispondente",
+      "nome": "Corrispondente",
+      "immagine_path": "distintivi/specialita/corrispondente.webp"
+    },
+    {
+      "slug": "corrispondente-radio",
+      "nome": "Corrispondente radio",
+      "immagine_path": "distintivi/specialita/corrispondente-radio.webp"
+    },
+    {
+      "slug": "cuoco",
+      "nome": "Cuoco",
+      "immagine_path": "distintivi/specialita/cuoco.webp"
+    },
+    {
+      "slug": "danzatore",
+      "nome": "Danzatore",
+      "immagine_path": "distintivi/specialita/danzatore.webp"
+    },
+    {
+      "slug": "disegnatore",
+      "nome": "Disegnatore",
+      "immagine_path": "distintivi/specialita/disegnatore.webp"
+    },
+    {
+      "slug": "elettricista",
+      "nome": "Elettricista",
+      "immagine_path": "distintivi/specialita/elettricista.webp"
+    },
+    {
+      "slug": "elettronico",
+      "nome": "Elettronico",
+      "immagine_path": "distintivi/specialita/elettronico.webp"
+    },
+    {
+      "slug": "esperto-del-computer",
+      "nome": "Esperto del computer",
+      "immagine_path": "distintivi/specialita/esperto-del-computer.webp"
+    },
+    {
+      "slug": "europeista",
+      "nome": "Europeista",
+      "immagine_path": "distintivi/specialita/europeista.webp"
+    },
+    {
+      "slug": "falegname",
+      "nome": "Falegname",
+      "immagine_path": "distintivi/specialita/falegname.webp"
+    },
+    {
+      "slug": "folclorista",
+      "nome": "Folclorista",
+      "immagine_path": "distintivi/specialita/folclorista.webp"
+    },
+    {
+      "slug": "fotografo",
+      "nome": "Fotografo",
+      "immagine_path": "distintivi/specialita/fotografo.webp"
+    },
+    {
+      "slug": "geologo",
+      "nome": "Geologo",
+      "immagine_path": "distintivi/specialita/geologo.webp"
+    },
+    {
+      "slug": "giardiniere",
+      "nome": "Giardiniere",
+      "immagine_path": "distintivi/specialita/giardiniere.webp"
+    },
+    {
+      "slug": "giocattolaio",
+      "nome": "Giocattolaio",
+      "immagine_path": "distintivi/specialita/giocattolaio.webp"
+    },
+    {
+      "slug": "grafico",
+      "nome": "Grafico",
+      "immagine_path": "distintivi/specialita/grafico.webp"
+    },
+    {
+      "slug": "guida",
+      "nome": "Guida",
+      "immagine_path": "distintivi/specialita/guida.webp"
+    },
+    {
+      "slug": "guida-marina",
+      "nome": "Guida Marina",
+      "immagine_path": "distintivi/specialita/guida-marina.webp"
+    },
+    {
+      "slug": "hebertista",
+      "nome": "Hebertista",
+      "immagine_path": "distintivi/specialita/hebertista.webp"
+    },
+    {
+      "slug": "idraulico",
+      "nome": "Idraulico",
+      "immagine_path": "distintivi/specialita/idraulico.webp"
+    },
+    {
+      "slug": "infermiere",
+      "nome": "Infermiere",
+      "immagine_path": "distintivi/specialita/infermiere.webp"
+    },
+    {
+      "slug": "interprete",
+      "nome": "Interprete",
+      "immagine_path": "distintivi/specialita/interprete.webp"
+    },
+    {
+      "slug": "lavoratore-in-cuoio",
+      "nome": "Lavoratore in cuoio",
+      "immagine_path": "distintivi/specialita/lavoratore-in-cuoio.webp"
+    },
+    {
+      "slug": "maestro-dei-giochi",
+      "nome": "Maestro dei giochi",
+      "immagine_path": "distintivi/specialita/maestro-dei-giochi.webp"
+    },
+    {
+      "slug": "maestro-dei-nodi",
+      "nome": "Maestro dei nodi",
+      "immagine_path": "distintivi/specialita/maestro-dei-nodi.webp"
+    },
+    {
+      "slug": "meccanico",
+      "nome": "Meccanico",
+      "immagine_path": "distintivi/specialita/meccanico.webp"
+    },
+    {
+      "slug": "modellista",
+      "nome": "Modellista",
+      "immagine_path": "distintivi/specialita/modellista.webp"
+    },
+    {
+      "slug": "muratore",
+      "nome": "Muratore",
+      "immagine_path": "distintivi/specialita/muratore.webp"
+    },
+    {
+      "slug": "musicista",
+      "nome": "Musicista",
+      "immagine_path": "distintivi/specialita/musicista.webp"
+    },
+    {
+      "slug": "nuotatore",
+      "nome": "Nuotatore",
+      "immagine_path": "distintivi/specialita/nuotatore.webp"
+    },
+    {
+      "slug": "omnia",
+      "nome": "Omnia",
+      "immagine_path": "distintivi/specialita/omnia.webp"
+    },
+    {
+      "slug": "osservatore",
+      "nome": "Osservatore",
+      "immagine_path": "distintivi/specialita/osservatore.webp"
+    },
+    {
+      "slug": "osservatore-meteo",
+      "nome": "Osservatore meteo",
+      "immagine_path": "distintivi/specialita/osservatore-meteo.webp"
+    },
+    {
+      "slug": "pescatore",
+      "nome": "Pescatore",
+      "immagine_path": "distintivi/specialita/pescatore.webp"
+    },
+    {
+      "slug": "pompiere",
+      "nome": "Pompiere",
+      "immagine_path": "distintivi/specialita/pompiere.webp"
+    },
+    {
+      "slug": "redattore",
+      "nome": "Redattore",
+      "immagine_path": "distintivi/specialita/redattore.webp"
+    },
+    {
+      "slug": "regista",
+      "nome": "Regista",
+      "immagine_path": "distintivi/specialita/regista.webp"
+    },
+    {
+      "slug": "sarto",
+      "nome": "Sarto",
+      "immagine_path": "distintivi/specialita/sarto.webp"
+    },
+    {
+      "slug": "scenografo",
+      "nome": "Scenografo",
+      "immagine_path": "distintivi/specialita/scenografo.webp"
+    },
+    {
+      "slug": "segnalatore",
+      "nome": "Segnalatore",
+      "immagine_path": "distintivi/specialita/segnalatore.webp"
+    },
+    {
+      "slug": "servizio-della-parola",
+      "nome": "Servizio della parola",
+      "immagine_path": "distintivi/specialita/servizio-della-parola.webp"
+    },
+    {
+      "slug": "servizio-liturgico",
+      "nome": "Servizio liturgico",
+      "immagine_path": "distintivi/specialita/servizio-liturgico.webp"
+    },
+    {
+      "slug": "servizio-missionario",
+      "nome": "Servizio missionario",
+      "immagine_path": "distintivi/specialita/servizio-missionario.webp"
+    },
+    {
+      "slug": "topografo",
+      "nome": "Topografo",
+      "immagine_path": "distintivi/specialita/topografo.webp"
+    },
+    {
+      "slug": "velista",
+      "nome": "Velista",
+      "immagine_path": "distintivi/specialita/velista.webp"
+    }
+  ],
+  "brevetti": [
+    {
+      "slug": "amico-della-natura",
+      "nome": "Amico della natura",
+      "immagine_path": "distintivi/brevetti/amico-della-natura.webp"
+    },
+    {
+      "slug": "animazione-espressiva",
+      "nome": "Animazione espressiva",
+      "immagine_path": "distintivi/brevetti/animazione-espressiva.webp"
+    },
+    {
+      "slug": "animazione-giornalistica",
+      "nome": "Animazione giornalistica",
+      "immagine_path": "distintivi/brevetti/animazione-giornalistica.webp"
+    },
+    {
+      "slug": "animazione-grafica-e-multimediale",
+      "nome": "Animazione grafica e multimediale",
+      "immagine_path": "distintivi/brevetti/animazione-grafica-e-multimediale.webp"
+    },
+    {
+      "slug": "animazione-internazionale",
+      "nome": "Animazione internazionale",
+      "immagine_path": "distintivi/brevetti/animazione-internazionale.webp"
+    },
+    {
+      "slug": "animazione-religiosa",
+      "nome": "Animazione religiosa",
+      "immagine_path": "distintivi/brevetti/animazione-religiosa.webp"
+    },
+    {
+      "slug": "animazione-sportiva",
+      "nome": "Animazione sportiva",
+      "immagine_path": "distintivi/brevetti/animazione-sportiva.webp"
+    },
+    {
+      "slug": "esploratore-delle-acque",
+      "nome": "Esploratore delle acque",
+      "immagine_path": "distintivi/brevetti/esploratore-delle-acque.webp"
+    },
+    {
+      "slug": "guida-alpina",
+      "nome": "Guida alpina",
+      "immagine_path": "distintivi/brevetti/guida-alpina.webp"
+    },
+    {
+      "slug": "maestro-delle-tecnologie",
+      "nome": "Maestro delle tecnologie",
+      "immagine_path": "distintivi/brevetti/maestro-delle-tecnologie.webp"
+    },
+    {
+      "slug": "mani-abili",
+      "nome": "Mani abili",
+      "immagine_path": "distintivi/brevetti/mani-abili.webp"
+    },
+    {
+      "slug": "pioniere",
+      "nome": "Pioniere",
+      "immagine_path": "distintivi/brevetti/pioniere.webp"
+    },
+    {
+      "slug": "sherpa",
+      "nome": "Sherpa",
+      "immagine_path": "distintivi/brevetti/sherpa.webp"
+    },
+    {
+      "slug": "soccorso",
+      "nome": "Soccorso",
+      "immagine_path": "distintivi/brevetti/soccorso.webp"
+    },
+    {
+      "slug": "trappeur",
+      "nome": "Trappeur",
+      "immagine_path": "distintivi/brevetti/trappeur.webp"
+    }
+  ],
+  "tappe": [
+    {
+      "slug": "competenza",
+      "nome": "Competenza",
+      "immagine_path": "distintivi/tappe/competenza.webp",
+      "ordine": 2
+    },
+    {
+      "slug": "responsabilita",
+      "nome": "Responsabilità",
+      "immagine_path": "distintivi/tappe/responsabilita.webp",
+      "ordine": 3
+    },
+    {
+      "slug": "scoperta",
+      "nome": "Scoperta",
+      "immagine_path": "distintivi/tappe/scoperta.webp",
+      "ordine": 1
+    }
+  ]
+}

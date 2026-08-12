@@ -2,7 +2,14 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
-import { getSceneObject, type SceneObject } from "@/lib/scene/objects";
+import { addNota, markCompleted } from "@/app/actions/personalProgress";
+import {
+  findSceneObject,
+  type CardData,
+  type ContentKind,
+  type SceneObject,
+} from "@/lib/scene/objects";
+import { useSceneObjects } from "@/lib/scene/SceneDataContext";
 import { useSceneStore } from "@/lib/scene/store";
 
 /**
@@ -26,8 +33,11 @@ export function ObjectPanel() {
   const focusOrigin = useSceneStore((state) => state.focusOrigin);
   const clear = useSceneStore((state) => state.clear);
   const reducedMotion = useReducedMotion();
+  const objects = useSceneObjects();
 
-  const object = focusedId ? getSceneObject(focusedId) : null;
+  const object = focusedId
+    ? (findSceneObject(objects, focusedId) ?? null)
+    : null;
 
   const hasWindow = typeof window !== "undefined";
   const offsetX =
@@ -143,26 +153,42 @@ function PanelSheet({
       </header>
 
       <PanelSection title="Contenuto ufficiale">
-        <p className="font-serif text-sm leading-relaxed italic">
-          Il testo ufficiale di questa carta non è ancora stato caricato.
-        </p>
+        {object.card ? (
+          <p className="font-serif text-sm leading-relaxed">
+            {object.card.title}
+            {/* Nessun testo descrittivo ufficiale nel modello dati attuale
+                (solo nome e immagine, P3-T01): nessun testo va inventato. */}
+          </p>
+        ) : (
+          <p className="font-serif text-sm leading-relaxed italic">
+            Il testo ufficiale di questa carta non è ancora stato caricato.
+          </p>
+        )}
       </PanelSection>
 
       <PanelSection title="Progresso">
-        <p className="font-sans text-sm leading-relaxed">
-          Nessun obiettivo registrato.
-        </p>
+        {object.card ? (
+          <ProgressoSection kind={object.card.kind} card={object.card} />
+        ) : (
+          <p className="font-sans text-sm leading-relaxed">
+            Nessun obiettivo registrato.
+          </p>
+        )}
       </PanelSection>
 
       <PanelSection title="Note personali">
-        <p className="font-sans text-sm leading-relaxed">
-          Non hai ancora scritto note su questa carta.
-        </p>
+        {object.card ? (
+          <NoteSection kind={object.card.kind} card={object.card} />
+        ) : (
+          <p className="font-sans text-sm leading-relaxed">
+            Non hai ancora scritto note su questa carta.
+          </p>
+        )}
       </PanelSection>
 
       <PanelSection title="Maestro">
         <p className="font-sans text-sm leading-relaxed">
-          Nessun Maestro associato.
+          {object.card?.maestroNome ?? "Nessun Maestro associato."}
         </p>
       </PanelSection>
     </section>
@@ -195,6 +221,97 @@ function PanelSection({
       >
         {children}
       </div>
+    </div>
+  );
+}
+
+const STATO_LABEL: Record<NonNullable<CardData["stato"]>, string> = {
+  in_corso: "In corso",
+  completata: "Completata",
+};
+
+function ProgressoSection({
+  kind,
+  card,
+}: {
+  kind: ContentKind;
+  card: CardData;
+}) {
+  const canComplete =
+    (kind === "specialita" || kind === "competenza") &&
+    card.stato === "in_corso";
+
+  return (
+    <div className="flex flex-col gap-2 font-sans text-sm leading-relaxed">
+      <p>
+        {card.stato ? STATO_LABEL[card.stato] : "In corso"}
+        {card.dataInizio ? ` — avviata il ${card.dataInizio}` : ""}
+        {card.dataCompletamento
+          ? `, completata il ${card.dataCompletamento}`
+          : ""}
+      </p>
+
+      {canComplete ? (
+        <form action={markCompleted.bind(null, kind, card.id)}>
+          <button
+            type="submit"
+            className="cursor-pointer text-[11px] tracking-wide underline underline-offset-2"
+            style={{ color: "var(--accent)" }}
+          >
+            Segna come completata
+          </button>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
+function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
+  return (
+    <div className="flex flex-col gap-3 font-sans text-sm leading-relaxed">
+      {card.note.length === 0 ? (
+        <p>Non hai ancora scritto note su questa carta.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {card.note.map((nota) => (
+            <li
+              key={nota.id}
+              className="rounded-[2px] p-2"
+              style={{
+                backgroundColor:
+                  "color-mix(in srgb, var(--paper-aged) 55%, transparent)",
+              }}
+            >
+              {nota.testo}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form action={addNota} className="flex flex-col gap-2">
+        <input type="hidden" name="tipo" value={kind} />
+        <input type="hidden" name="riferimentoId" value={card.id} />
+        <textarea
+          name="testo"
+          rows={2}
+          placeholder="Aggiungi una nota…"
+          required
+          className="rounded-[2px] p-2 text-sm"
+          style={{
+            backgroundColor: "var(--paper-base)",
+            border:
+              "1px solid color-mix(in srgb, var(--wood-dark) 22%, transparent)",
+            color: "var(--ink)",
+          }}
+        />
+        <button
+          type="submit"
+          className="cursor-pointer self-start text-[11px] tracking-wide underline underline-offset-2"
+          style={{ color: "var(--accent)" }}
+        >
+          Salva nota
+        </button>
+      </form>
     </div>
   );
 }

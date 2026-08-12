@@ -1,4 +1,10 @@
-import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from "three";
+import {
+  CanvasTexture,
+  RepeatWrapping,
+  SRGBColorSpace,
+  Texture,
+  TextureLoader,
+} from "three";
 import type { SceneObject } from "@/lib/scene/objects";
 import { materialColor, mix } from "./palette";
 
@@ -13,6 +19,8 @@ import { materialColor, mix } from "./palette";
  */
 
 const cache = new Map<string, CanvasTexture>();
+const imageCache = new Map<string, Texture>();
+const imageLoader = new TextureLoader();
 let allocatedBytes = 0;
 
 /** Stima dei byte GPU occupati dalle texture generate (RGBA + mipmap). */
@@ -24,7 +32,31 @@ export function textureBudgetBytes(): number {
 export function resetTextureCache() {
   cache.forEach((texture) => texture.dispose());
   cache.clear();
+  imageCache.forEach((texture) => texture.dispose());
+  imageCache.clear();
   allocatedBytes = 0;
+}
+
+/**
+ * Texture reale caricata da Supabase Storage (pipeline P3-T02b), al posto
+ * della texture procedurale. Il caricamento è asincrono: `TextureLoader`
+ * restituisce subito la texture e la aggiorna (`needsUpdate`) quando
+ * l'immagine arriva, come già avviene per i titoli in `createTexture`.
+ */
+function getImageTexture(url: string): Texture {
+  const cached = imageCache.get(url);
+  if (cached) return cached;
+
+  const texture = imageLoader.load(url);
+  texture.colorSpace = SRGBColorSpace;
+  texture.anisotropy = 4;
+
+  imageCache.set(url, texture);
+  // Dimensione reale nota solo a caricamento completato; stima conservativa
+  // sul target della pipeline (300px di larghezza, SDD §10).
+  allocatedBytes += Math.round(300 * 384 * 4 * 1.34);
+
+  return texture;
 }
 
 type DrawFn = (
@@ -202,10 +234,19 @@ const VARIANT_ACCENT: Record<string, () => string> = {
 };
 
 /**
- * Faccia superiore di una carta. Placeholder deliberatamente astratto: nessuna
- * grafica ufficiale AGESCI è riprodotta o simulata.
+ * Faccia superiore di una carta. Se `object.imageUrl` è presente carica la
+ * texture reale (P3-T02b); altrimenti usa il placeholder procedurale di Fase
+ * 2, deliberatamente astratto: nessuna grafica ufficiale AGESCI è riprodotta
+ * o simulata.
  */
-export function getCardTexture(object: SceneObject): CanvasTexture {
+export function getCardTexture(object: SceneObject): Texture {
+  if (object.imageUrl) {
+    return getImageTexture(object.imageUrl);
+  }
+  return getProceduralCardTexture(object);
+}
+
+function getProceduralCardTexture(object: SceneObject): CanvasTexture {
   return createTexture(`card:${object.id}`, 384, 548, (ctx, w, h) => {
     const paper = materialColor("--paper-base");
     const aged = materialColor("--paper-aged");

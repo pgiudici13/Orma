@@ -19,15 +19,12 @@ export type SceneObjectKind =
   | "matita"
   | "bussola";
 
-export type SceneObjectId =
-  | "specialita-nodi"
-  | "competenza-fede"
-  | "tappa-scoperta"
-  | "taccuino"
-  | "calendario"
-  | "foglio"
-  | "matita"
-  | "bussola";
+/**
+ * Gli oggetti decorativi/di navigazione hanno id letterali fissi. Le carte di
+ * contenuto (P3-T04) hanno invece id derivati da dati reali (`kind:slug`),
+ * quindi il tipo resta una stringa: l'unione letterale non può più coprirli.
+ */
+export type SceneObjectId = string;
 
 export type SceneObject = {
   id: SceneObjectId;
@@ -41,6 +38,18 @@ export type SceneObject = {
   spot: readonly [x: number, z: number];
   /** Rotazione attorno all'asse verticale, in gradi. */
   tilt: number;
+  /**
+   * URL della texture reale (Supabase Storage, pipeline P3-T02b). Se assente,
+   * la carta usa la texture procedurale di Fase 2 (components/three/materials/textures.ts).
+   */
+  imageUrl?: string;
+  /**
+   * Dati di dominio completi, presenti solo per le carte reali costruite da
+   * `buildCardSceneObjects` (P3-T05). Assente per gli oggetti decorativi e
+   * per il set dimostrativo di Fase 2: il pannello mostra i placeholder
+   * originali quando `card` non c'è.
+   */
+  card?: CardData;
 };
 
 export const KIND_LABEL: Record<SceneObjectKind, string> = {
@@ -141,7 +150,89 @@ export function getSceneObject(id: SceneObjectId): SceneObject {
   return object;
 }
 
+/** Come `getSceneObject`, ma su una lista qualunque (dati reali, P3-T04). */
+export function findSceneObject(
+  objects: readonly SceneObject[],
+  id: SceneObjectId,
+): SceneObject | undefined {
+  return objects.find((candidate) => candidate.id === id);
+}
+
 /** Etichetta accessibile usata dagli hotspot da tastiera e dai bottoni 2D. */
 export function sceneObjectAriaLabel(object: SceneObject): string {
   return `Apri ${object.label.toLowerCase()}: ${object.title}`;
+}
+
+export type ContentKind = "specialita" | "competenza" | "tappa";
+
+export type NotaData = { id: string; testo: string };
+
+/** Una Specialità/Competenza/Tappa con progresso utente attivo (P3-T04/T08). */
+export type CardData = {
+  id: string;
+  kind: ContentKind;
+  slug: string;
+  title: string;
+  imageUrl?: string;
+  /** Assente per le Tappe: non hanno un campo stato (solo date). */
+  stato?: "in_corso" | "completata";
+  dataInizio?: string;
+  dataCompletamento?: string;
+  note: NotaData[];
+  maestroNome?: string;
+};
+
+/**
+ * Posizione/rotazione delle carte di contenuto sul tavolo, una per famiglia.
+ * Stessi valori del set dimostrativo originale di Fase 2, così la
+ * composizione visiva tuned non cambia quando arrivano dati reali.
+ *
+ * Semplificazione dichiarata (vedi piano P3-T04): sul tavolo compare al più
+ * una carta per famiglia (la prima con progresso attivo); il resto del
+ * percorso personale si consulta dal catalogo dedicato, non dal tavolo.
+ */
+const CONTENT_SLOT: Record<
+  ContentKind,
+  { spot: readonly [number, number]; tilt: number }
+> = {
+  specialita: { spot: [-0.34, -0.18], tilt: -5 },
+  tappa: { spot: [0.62, -0.3], tilt: 4 },
+  competenza: { spot: [0.3, 0.34], tilt: -8 },
+};
+
+/** Oggetti decorativi/di navigazione: sempre presenti, mai da dati reali. */
+export const DECORATIVE_OBJECTS: readonly SceneObject[] = SCENE_OBJECTS.filter(
+  (object) => !(object.kind in CONTENT_SLOT),
+);
+
+/** Converte le carte con progresso attivo in oggetti di scena posizionati. */
+export function buildCardSceneObjects(
+  cards: readonly CardData[],
+): SceneObject[] {
+  const firstPerKind = new Map<ContentKind, CardData>();
+  for (const card of cards) {
+    if (!firstPerKind.has(card.kind)) firstPerKind.set(card.kind, card);
+  }
+
+  return Array.from(firstPerKind.values()).map((card) => {
+    const { spot, tilt } = CONTENT_SLOT[card.kind];
+    return {
+      id: `${card.kind}:${card.slug}`,
+      kind: card.kind,
+      title: card.title,
+      label: KIND_LABEL[card.kind],
+      interactive: true,
+      spot,
+      tilt,
+      imageUrl: card.imageUrl,
+      card,
+    } satisfies SceneObject;
+  });
+}
+
+/** Lista completa da mostrare sul tavolo: carte reali + oggetti decorativi. */
+export function mergeSceneObjects(
+  cards: readonly CardData[],
+): readonly SceneObject[] {
+  return [...buildCardSceneObjects(cards), ...DECORATIVE_OBJECTS];
 }

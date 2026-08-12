@@ -80,18 +80,36 @@ test.describe("tavolo autenticato", () => {
       timeout: 15_000,
     });
 
+    // Dalla Fase 3 le carte di contenuto vengono da Supabase (P3-T04): l'id
+    // dell'hotspot è dinamico ("specialita:<slug>", ecc.), non più fisso.
+    // Il test verifica il pattern di interazione, non un contenuto specifico
+    // — richiede che l'utente di prova abbia almeno una Specialità/Competenza/
+    // Tappa con progresso attivo, altrimenti si salta.
     const hotspot = page
-      .locator('[data-scene-hotspot="specialita-nodi"]:visible')
+      .locator(
+        '[data-scene-hotspot^="specialita:"]:visible, [data-scene-hotspot^="competenza:"]:visible, [data-scene-hotspot^="tappa:"]:visible',
+      )
       .first();
-    await expect(hotspot).toBeAttached({ timeout: 15_000 });
+    const hasContentCard = (await hotspot.count()) > 0;
+    test.skip(
+      !hasContentCard,
+      "L'utente di prova non ha nessuna Specialità/Competenza/Tappa con progresso attivo",
+    );
+
+    const title = await hotspot.getAttribute("aria-label");
     await hotspot.focus();
     await page.keyboard.press("Enter");
 
     const panel = page.getByRole("dialog");
     await expect(panel).toBeVisible();
-    await expect(
-      panel.getByRole("heading", { name: "Nodi e Legature" }),
-    ).toBeVisible();
+    if (title) {
+      // aria-label è "Apri <famiglia>: <titolo>": il titolo compare anche
+      // nell'intestazione del pannello.
+      const cardTitle = title.split(": ").slice(1).join(": ");
+      await expect(
+        panel.getByRole("heading", { name: cardTitle }),
+      ).toBeVisible();
+    }
 
     // Sezioni nell'ordine prescritto da docs/UX.md.
     await expect(panel.getByRole("heading", { level: 3 })).toHaveText([
@@ -114,8 +132,10 @@ test.describe("tavolo autenticato", () => {
 
     await expect(page.locator('[data-table-mode="flat"]')).toBeVisible();
     await expect(page.locator("canvas")).toHaveCount(0);
+    // Taccuino è sempre presente (oggetto decorativo/di navigazione fisso),
+    // a differenza delle carte di contenuto che dipendono dai dati dell'utente.
     await expect(
-      page.getByRole("button", { name: /Nodi e Legature/i }).first(),
+      page.getByRole("button", { name: /Taccuino/i }).first(),
     ).toBeVisible();
   });
 });

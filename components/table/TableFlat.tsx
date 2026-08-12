@@ -1,11 +1,8 @@
 "use client";
 
 import { Logo } from "@/components/Logo";
-import {
-  SCENE_OBJECTS,
-  sceneObjectAriaLabel,
-  type SceneObject,
-} from "@/lib/scene/objects";
+import { sceneObjectAriaLabel, type SceneObject } from "@/lib/scene/objects";
+import { useSceneObjects } from "@/lib/scene/SceneDataContext";
 import { useSceneStore } from "@/lib/scene/store";
 import { Calendar } from "./Calendar";
 import { Card } from "./Card";
@@ -28,30 +25,34 @@ import { TableSurface } from "./TableSurface";
  * store: il pattern di interazione è identico su tutti i formati.
  */
 
-/** Posizione degli oggetti nella composizione larga (desktop senza WebGL). */
-const WIDE_LAYOUT: Record<
-  string,
-  { top: string; left: string; rotate: number }
-> = {
+type Placement = { top: string; left: string; rotate: number };
+
+/** Posizione degli oggetti decorativi/di navigazione (id fissi). */
+const WIDE_LAYOUT_DECORATIVE: Record<string, Placement> = {
   taccuino: { top: "20%", left: "13%", rotate: -6 },
-  "specialita-nodi": { top: "26%", left: "38%", rotate: -3 },
-  "tappa-scoperta": { top: "22%", left: "72%", rotate: 2 },
-  "competenza-fede": { top: "56%", left: "58%", rotate: 4 },
   calendario: { top: "60%", left: "16%", rotate: -2 },
   foglio: { top: "74%", left: "40%", rotate: 5 },
   matita: { top: "84%", left: "62%", rotate: -8 },
   bussola: { top: "76%", left: "84%", rotate: 0 },
 };
 
-/** Ordine di lettura nella composizione stretta (mobile). */
-const NARROW_ORDER = [
-  "specialita-nodi",
-  "tappa-scoperta",
-  "competenza-fede",
-  "calendario",
-  "taccuino",
-  "foglio",
-] as const;
+/**
+ * Posizione delle carte di contenuto, una per famiglia (id dinamici, P3-T04:
+ * non si può più indicizzare per id fisso come in Fase 2).
+ */
+const WIDE_LAYOUT_CONTENT: Record<string, Placement> = {
+  specialita: { top: "26%", left: "38%", rotate: -3 },
+  tappa: { top: "22%", left: "72%", rotate: 2 },
+  competenza: { top: "56%", left: "58%", rotate: 4 },
+};
+
+function widePlacement(object: SceneObject): Placement | undefined {
+  return WIDE_LAYOUT_DECORATIVE[object.id] ?? WIDE_LAYOUT_CONTENT[object.kind];
+}
+
+/** Ordine di lettura nella composizione stretta (mobile): famiglie di contenuto, poi decorativi selezionati. */
+const NARROW_CONTENT_ORDER = ["specialita", "tappa", "competenza"] as const;
+const NARROW_DECORATIVE_ORDER = ["calendario", "taccuino", "foglio"] as const;
 
 function ObjectVisual({ object }: { object: SceneObject }) {
   switch (object.kind) {
@@ -104,11 +105,14 @@ function Interactive({ object }: { object: SceneObject }) {
 }
 
 export function TableFlat() {
-  const narrowObjects = NARROW_ORDER.map((id) => {
-    const object = SCENE_OBJECTS.find((candidate) => candidate.id === id);
-    if (!object) throw new Error(`Oggetto assente dalla composizione: ${id}`);
-    return object;
-  });
+  const objects = useSceneObjects();
+
+  const contentByKind = new Map(objects.map((o) => [o.kind, o]));
+  const decorativeById = new Map(objects.map((o) => [o.id, o]));
+  const narrowObjects = [
+    ...NARROW_CONTENT_ORDER.map((kind) => contentByKind.get(kind)),
+    ...NARROW_DECORATIVE_ORDER.map((id) => decorativeById.get(id)),
+  ].filter((object): object is SceneObject => Boolean(object));
 
   return (
     <div className="relative min-h-[640px] w-full flex-1 overflow-hidden">
@@ -124,8 +128,8 @@ export function TableFlat() {
 
       {/* Composizione larga: oggetti sparsi sul piano, vista dall'alto. */}
       <div className="absolute inset-0 hidden md:block">
-        {SCENE_OBJECTS.map((object, index) => {
-          const placement = WIDE_LAYOUT[object.id];
+        {objects.map((object, index) => {
+          const placement = widePlacement(object);
           if (!placement) return null;
 
           return (

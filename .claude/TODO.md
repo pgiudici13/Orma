@@ -123,7 +123,13 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 
 ---
 
-## Phase 3 — Specialità / Competenze / Tappe (contenuto ufficiale)
+## Phase 3 — Specialità / Competenze / Tappe (contenuto ufficiale) — **completata, deploy incluso**
+
+Tutti i task sono implementati e applicati al progetto Supabase reale (`ouffyxrhxhzqcduvgpon`) via MCP Supabase. La fonte del catalogo non sono i PDF (rivelatisi non utilizzabili, vedi DEC-005 aggiornata) ma un set di immagini fornito direttamente dall'utente (`assets/source/distintivi/`, 65 Specialità + 15 Brevetti + 3 Tappe), processato da `scripts/process-cards.ts` in `assets/processed/distintivi/` + `manifest.json`, seedato da `scripts/generate-seed.ts` in `supabase/migrations/20260812100500_seed_official_content.sql`.
+
+**Deploy completato via MCP Supabase**: le 4 migrazioni (`20260812100000_official_content.sql`, `20260812100500_seed_official_content.sql`, `20260812101000_personal_progress.sql`, `20260812110000_rls_performance_fix.sql`) sono applicate al progetto reale; il bucket Storage pubblico `distintivi` è stato creato (policy `distintivi_public_read`) e gli 83 asset processati caricati con `scripts/upload-assets.sh` (verificato: URL pubblico raggiungibile, 200 `image/webp`). `get_advisors` post-deploy: nessun nuovo advisor di sicurezza; risolti tutti gli `auth_rls_initplan` e `unindexed_foreign_keys` introdotti dalle nuove tabelle (migrazione `20260812110000`) — restano solo 3 warning pre-esistenti su `profiles` (Fase 5, fuori scope) e gli "unused index" attesi su tabelle ancora vuote.
+
+"Brevetto" (raggruppamento di più Specialità) è stato aggiunto come entità ufficiale non prevista nei documenti originali — vedi DEC-005 aggiornata. La composizione `brevetto_specialita` non è popolata: nessuna fonte disponibile indica quali Specialità formano ogni brevetto.
 
 ### P3-T01 — Schema DB contenuto ufficiale
 
@@ -132,6 +138,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **File/componenti**: `supabase/migrations/`.
 - **Criteri di completamento**: schema applicato, popolabile via seed di test.
 - **Test necessari**: query di verifica struttura, test che nessuna colonna di progresso utente sia presente in queste tabelle.
+- **Stato**: completato. `supabase/migrations/20260812100000_official_content.sql` — `specialita`, `tappa`, `competenza`, `brevetto`, `brevetto_specialita` (nuova entità, vedi nota di fase), RLS select-only per `authenticated`, nessuna policy di scrittura applicativa (DEC-008). Non ancora applicata al progetto Supabase reale (nessuna CLI/MCP collegata in questa sessione).
 
 ### P3-T02a — Migrazione `files/` → `assets/source/` e ispezione PDF
 
@@ -140,6 +147,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **File/componenti**: `assets/source/`.
 - **Criteri di completamento**: PDF originali intatti e spostati in `assets/source/`; DEC-005 aggiornata da `Open Decision` a `Accepted` con lo strumento scelto.
 - **Test necessari**: verifica che lo spostamento non abbia alterato i file (checksum prima/dopo).
+- **Stato**: completato, ma con esito diverso dall'ipotesi originale. Ispezione: i 3 PDF hanno testo selezionabile ma **non sono un catalogo** (due moduli personali vuoti di un Gruppo, un manuale metodologico in prosa) — restano in `files/`, non spostati. La fonte reale del catalogo è `assets/source/distintivi/` (immagini fornite dall'utente). DEC-005 aggiornata di conseguenza (Accepted, non più Open Decision).
 
 ### P3-T02b — Asset pipeline PDF → texture
 
@@ -148,6 +156,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **File/componenti**: `assets/source/`, `assets/processed/`, script di processing (`scripts/process-cards.ts` o simile).
 - **Criteri di completamento**: almeno una carta reale processata end-to-end, PDF originale intatto in `assets/source/`.
 - **Test necessari**: verifica visiva della texture generata, verifica che il PDF sorgente non sia stato alterato.
+- **Stato**: completato, adattato alla fonte reale (immagini, non PDF). `scripts/process-cards.ts` normalizza i nomi (mappa esplicita di correzioni), genera slug, converte in WebP (sharp) in `assets/processed/distintivi/`, produce `manifest.json`. `scripts/generate-seed.ts` genera la migrazione di seed da quel manifest. `components/three/materials/textures.ts` (`getCardTexture`) carica la texture reale via `THREE.TextureLoader` quando l'oggetto ha `imageUrl`, altrimenti resta sul placeholder procedurale di Fase 2. Verificato: `npm run test`, `tsc --noEmit`, `npm run lint`, `npm run build` puliti.
 
 ### P3-T03 — Schema DB percorso personale
 
@@ -156,6 +165,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **File/componenti**: `supabase/migrations/`.
 - **Criteri di completamento**: RLS attiva (solo il proprietario legge/scrive la propria riga); schema verificato con test di isolamento.
 - **Test necessari**: test RLS (utente A non può leggere/scrivere righe di utente B).
+- **Stato**: completato. `supabase/migrations/20260812101000_personal_progress.sql` — `user_specialita`, `user_competenza`, `user_tappa`, `nota` (generica per tipo+riferimento_id), `maestro_esterno` (anticipata per FK, popolamento reale in P4-T03). RLS `auth.uid() = profile_id` + funzione condivisa `has_active_consent()` che nega l'accesso quando `stato_consenso_genitoriale = 'in_attesa'` (DEC-010). Primo test RLS del progetto: `tests/unit/rls/personalTables.rls.test.ts`, richiede due utenti di prova via env (`RLS_TEST_USER_A/B_EMAIL/PASSWORD`), si salta da solo senza — pattern riusabile in Fase 6/9/10.
 
 ### P3-T04 — Catalogo Specialità (UI)
 
@@ -164,6 +174,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **File/componenti**: `app/specialita/page.tsx` o superficie tavolo equivalente.
 - **Criteri di completamento**: catalogo renderizzato da dati reali Supabase, non mock statico.
 - **Test necessari**: verifica dati, verifica che il contenuto ufficiale non sia editabile da UI.
+- **Stato**: completato. `app/specialita/page.tsx` + `app/specialita/actions.ts` (`startSpecialita`, Server Action, idempotente su unique constraint). Nessuna policy di scrittura su `specialita` lato DB: l'azione scrive solo su `user_specialita`. La Home (`app/page.tsx`) mostra sul tavolo solo le carte con progresso attivo (`lib/queries/cards.ts` → `getTableCards`), non l'intero catalogo — il resto si consulta da questa vista.
 
 ### P3-T05 — Carta di Specialità: dettaglio + progresso + note
 
@@ -172,6 +183,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **File/componenti**: `app/specialita/[id]/CardDetail.tsx`.
 - **Criteri di completamento**: utente può segnare progresso/obiettivi e aggiungere note; contenuto ufficiale resta read-only.
 - **Test necessari**: test che la scrittura utente non modifichi mai la riga di contenuto ufficiale.
+- **Stato**: completato, con uno scope minimo dichiarato. `components/panel/ObjectPanel.tsx` legge `SceneObject.card` (dati reali, via `lib/scene/SceneDataContext.tsx`) e mostra le 4 sezioni nell'ordine prescritto con contenuto reale; senza `card` (oggetti decorativi, set dimostrativo di Fase 2 nei test) resta sui placeholder originali — nessun test esistente rotto. Azioni in `app/actions/personalProgress.ts`: `markCompleted` (solo specialita/competenza, unica colonna `stato`) e `addNota` (crea una nota, FormData). Nessun testo ufficiale descrittivo: lo schema non lo prevede (nessuna fonte disponibile) — la sezione "Contenuto ufficiale" mostra nome/immagine, non obiettivi inventati. Il CRUD note completo (modifica/eliminazione) resta a P4-T01 come da questo piano.
 
 ### P3-T06 — Competenze (replica pattern Specialità)
 
@@ -179,6 +191,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **Dipendenze**: P3-T05 (pattern validato).
 - **Criteri di completamento**: parità funzionale con Specialità.
 - **Test necessari**: come P3-T05.
+- **Stato**: completato. `app/competenze/page.tsx` + `app/competenze/actions.ts` (`startCompetenza`), stesso pattern di Specialità. Il dettaglio (pannello) era già generico per `kind` fin da P3-T05, nessun codice specifico aggiuntivo necessario. Catalogo seedato con 5 voci segnaposto (nessuna fonte reale disponibile, DEC-005): da sostituire quando arriva materiale ufficiale.
 
 ### P3-T07 — Tappe (percorso personale)
 
@@ -186,6 +199,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **Dipendenze**: P3-T05, P3-T06.
 - **Criteri di completamento**: collegamenti tra Tappa e Specialità/Competenze completate visibili e corretti.
 - **Test necessari**: verifica coerenza dei collegamenti con dati di test.
+- **Stato**: completato come vista informativa, senza gating. `app/tappe/page.tsx` + `app/tappe/actions.ts` (`startTappa`, `markTappaCompleted` — `user_tappa` non ha colonna stato, solo date). Mostra il conteggio di Specialità/Competenze completate come contesto, non come regola di sblocco: nessuna regola di progressione è specificata nei documenti di prodotto, e non ne è stata inventata una qui (se serve, va decisa esplicitamente e registrata in DECISIONS.md prima di implementarla).
 
 ---
 

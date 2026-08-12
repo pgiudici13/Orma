@@ -11,7 +11,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "process-cards": "node scripts/process-cards.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
@@ -44,6 +45,7 @@
     "eslint-config-prettier": "^10.1.8",
     "jsdom": "^30.0.1",
     "prettier": "^3.9.6",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"

@@ -5,11 +5,11 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useRef, useState } from "react";
 import type { Group } from "three";
 import {
-  SCENE_OBJECTS,
   sceneObjectAriaLabel,
   type SceneObject,
   type SceneObjectKind,
 } from "@/lib/scene/objects";
+import { useSceneObjects } from "@/lib/scene/SceneDataContext";
 import { useSceneStore } from "@/lib/scene/store";
 import { SETTLED, damp } from "./animation";
 import { Card3D } from "./Card3D";
@@ -161,9 +161,10 @@ function ObjectHotspot({ object }: { object: SceneObject }) {
 }
 
 export function SceneObjects() {
+  const objects = useSceneObjects();
   return (
     <>
-      {SCENE_OBJECTS.map((object) => (
+      {objects.map((object) => (
         <PlacedObject key={object.id} object={object} />
       ))}
     </>

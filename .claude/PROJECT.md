@@ -72,21 +72,30 @@ Nessun repository di codice esiste ancora: questa è l'architettura target, non 
 Orma/
 ├── CLAUDE.md              # istruzioni operative per Claude Code
 ├── IDEA.md                # visione di prodotto originale
-├── app/                    # Next.js App Router (auth Fase 5 + Home tavolo)
+├── app/                    # Next.js App Router (auth Fase 5, catalogo Fase 3, Home tavolo)
+│   ├── specialita/         # catalogo + avvio percorso (P3-T04)
+│   ├── competenze/         # catalogo + avvio percorso (P3-T06)
+│   ├── tappe/               # percorso Tappe, informativo (P3-T07)
+│   └── actions/             # Server Action condivise (progresso, note)
 ├── components/
 │   ├── panel/              # pannello di contenuto DOM (condiviso 3D/2D)
 │   ├── table/              # scelta della resa + composizione 2D/mobile
 │   └── three/              # scena R3F: canvas, tavolo, carte, camera, materiali
 ├── lib/
-│   ├── scene/              # store scena, definizione oggetti, capacità del device
-│   └── supabase/           # client browser/server/admin + proxy sessione
+│   ├── scene/              # store scena, definizione oggetti, capacità del device, dati reali (SceneDataContext)
+│   ├── queries/             # fetch dati Supabase per Server Component (P3-T04)
+│   └── supabase/           # client browser/server/admin + proxy sessione + storage helper
+├── scripts/                 # pipeline asset one-shot (process-cards.ts, generate-seed.ts)
 ├── tests/
-│   ├── unit/               # Vitest + Testing Library
+│   ├── unit/               # Vitest + Testing Library (incl. rls/ per i test RLS)
 │   └── e2e/                # Playwright
 ├── public/
+├── assets/
+│   ├── source/              # asset originali intatti (distintivi/, mai modificati)
+│   └── processed/           # output pipeline (WebP + manifest.json)
 ├── supabase/
 │   ├── config.toml
-│   └── migrations/          # schema profiles (Fase 5)
+│   └── migrations/          # schema profiles (Fase 5) + contenuto ufficiale/personale (Fase 3)
 ├── docs/
 │   ├── PRODUCT.md
 │   ├── UX.md
@@ -111,6 +120,12 @@ Orma/
 Limite dichiarato: le texture sono procedurali, non asset AGESCI reali — `docs/DESIGN.md` chiede realismo fotografico, raggiungibile solo con la pipeline PDF di Fase 3, che sostituirà le `map` senza toccare geometrie o interazione. I frame rate reali su GPU desktop/mobile restano da misurare (P10-T03).
 
 Nota operativa: la CLI `supabase` locale non è collegata al progetto remoto (`supabase link` richiede `supabase login` interattivo, non eseguibile in sessione headless) — le migrazioni verranno applicate tramite l'MCP Supabase (`apply_migration`) finché non si esegue il login manuale.
+
+**Fase 3 (Specialità/Competenze/Tappe) completata, deploy incluso**: schema DB per contenuto ufficiale (`specialita`, `tappa`, `competenza`, `brevetto`, `brevetto_specialita`) e percorso personale (`user_specialita`, `user_competenza`, `user_tappa`, `nota`, `maestro_esterno`) con RLS completa, incluso il primo test RLS del progetto (`tests/unit/rls/`). Il catalogo reale (65 Specialità, 15 Brevetti, 3 Tappe) viene da immagini fornite direttamente dall'utente (`assets/source/distintivi/`), non dai 3 PDF originari — risultati non un catalogo utilizzabile all'ispezione (vedi DEC-005 aggiornata) — né da scraping di terze parti (rifiutato per rischio di copyright non verificato). La scena tavolo (`app/page.tsx`, Server Component) e il pannello di dettaglio mostrano dati reali per l'utente autenticato tramite `lib/queries/cards.ts` e `lib/scene/SceneDataContext.tsx`; le carte demo di Fase 2 restano come fallback quando nessun Provider è montato (test, storybook). Cataloghi dedicati per avviare il percorso: `/specialita`, `/competenze`, `/tappe`.
+
+**Deploy** (via MCP Supabase, progetto `ouffyxrhxhzqcduvgpon`): 4 migrazioni applicate (incluso un fix di performance post-`get_advisors`: indici mancanti sulle FK e policy RLS che rivalutavano `auth.uid()` per riga, `20260812110000_rls_performance_fix.sql`); bucket Storage pubblico `distintivi` creato con policy di lettura pubblica; 83 asset caricati con `scripts/upload-assets.sh`. Nessun advisor di sicurezza nuovo.
+
+Limiti dichiarati: (1) `brevetto_specialita` (composizione di ogni Brevetto) non è popolata, nessuna fonte disponibile la specifica; (2) Competenza non ha catalogo immagini reale, solo 5 voci segnaposto; (3) sul tavolo compare al più una carta per famiglia (semplificazione dichiarata in `lib/scene/objects.ts`), il resto del percorso si consulta dai cataloghi dedicati.
 
 ## 7. Modello dati ad alto livello
 
@@ -151,9 +166,9 @@ Regole:
 - non assumere che materiale trovato online sia liberamente riutilizzabile — verificare fonte, licenza, termini d'uso prima di ogni integrazione;
 - non costruire scraper senza aver verificato che sia consentito.
 
-**Stato attuale**: 3 PDF sorgente sono disponibili in `files/` alla radice del repository (`Carta di Specialità.pdf`, `CARTA DI COMPETENZA.pdf`, `Manuale-della-Branca-EG.pdf`). Non sono ancora nella struttura `assets/source/` definitiva prevista dalla pipeline; la migrazione e la scelta dello strumento di estrazione restano da fare in Fase 0/3 — vedi [DEC-005](DECISIONS.md#dec-005--asset-pipeline-pdf--texture-web).
+**Stato attuale (aggiornato Fase 3)**: i 3 PDF originari (`Carta di Specialità.pdf`, `CARTA DI COMPETENZA.pdf`, `Manuale-della-Branca-EG.pdf`, ancora in `files/`) si sono rivelati non utilizzabili come catalogo — vedi [DEC-005](DECISIONS.md#dec-005--asset-pipeline-immagini-distintivi--texture-web) aggiornata. La pipeline reale parte da immagini fornite direttamente dall'utente in `assets/source/distintivi/{specialita,brevetti,tappe}/` (65 + 15 + 3 file), processate da `scripts/process-cards.ts` (normalizzazione nomi, conversione WebP via `sharp`) in `assets/processed/distintivi/` + `manifest.json`, da cui `scripts/generate-seed.ts` genera la migrazione di seed. Le texture reali si caricano in `components/three/materials/textures.ts` via `THREE.TextureLoader` quando l'oggetto ha `imageUrl`.
 
-Il popolamento e la manutenzione del catalogo ufficiale (contenuto derivato da questi PDF) restano a carico del proprietario del progetto tramite seed/migrazioni — nessun ruolo o UI di amministrazione in-app è previsto ([DEC-008](DECISIONS.md#dec-008--gestione-del-contenuto-ufficiale-specialit%C3%A0competenzetappe)).
+Il popolamento e la manutenzione del catalogo ufficiale restano a carico del proprietario del progetto tramite seed/migrazioni — nessun ruolo o UI di amministrazione in-app è previsto ([DEC-008](DECISIONS.md#dec-008--gestione-del-contenuto-ufficiale-specialit%C3%A0competenzetappe)).
 
 ## 10. Supabase
 

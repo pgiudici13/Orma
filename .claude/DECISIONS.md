@@ -131,36 +131,40 @@ La Fase 2 (P2-T02) richiede uno stato di scena condiviso fra la scena 3D (quale 
 
 ---
 
-## DEC-005 — Asset pipeline PDF → texture web
+## DEC-005 — Asset pipeline immagini distintivi → texture web
 
 ### Status
 
-Open Decision (parzialmente sbloccata)
+Accepted (parzialmente — vedi Consequences per lo scope residuo)
 
 ### Context
 
-I PDF sorgente sono ora disponibili in `files/` alla radice del repository (`Carta di Specialità.pdf`, `CARTA DI COMPETENZA.pdf`, `Manuale-della-Branca-EG.pdf` — quest'ultimo verosimilmente la fonte per le Tappe). `docs/DESIGN.md` conferma che il PDF originale deve essere trattato come fonte master e mai modificato distruttivamente.
+I 3 PDF originariamente disponibili in `files/` (`Carta di Specialità.pdf`, `CARTA DI COMPETENZA.pdf`, `Manuale-della-Branca-EG.pdf`) sono stati ispezionati in P3-T02a: **non sono un catalogo utilizzabile**. I primi due sono moduli personali vuoti di un singolo Gruppo (Pavia 4, Reparto Mafeking/La Cometa), il terzo è il manuale metodologico generale della Branca E/G (346 pagine di prosa continua, nessun elenco strutturato di Specialità/Competenze/Tappe). Restano in `files/` come riferimento metodologico, ma non entrano nella pipeline immagini.
 
-`files/` non è ancora la posizione definitiva prevista dalla pipeline (`assets/source/` — vedi SDD §11): è una cartella di staging temporanea creata fuori dalla struttura `docs/`/`.claude/` di questo bootstrap.
+È stato inoltre valutato e **rifiutato** lo scraping di immagini prodotto da un sito di e-commerce terzo (caravellascout.it, negozio commerciale non ufficiale AGESCI): rischio di copyright non verificato su foto di prodotto, vietato sia dalle policy dell'assistente sia da questo stesso documento (§"External/official data" di `CLAUDE.md` — non costruire uno scraper senza aver verificato licenza/termini d'uso).
+
+L'utente ha fornito direttamente un catalogo di immagini reali (65 Specialità, 15 "Brevetti", 3 Tappe — JPEG 236×305, reperite autonomamente dall'utente), dichiarando la fonte fuori dalla verifica dell'assistente e assumendosene la responsabilità di provenienza/licenza.
 
 ### Decision
 
-Definita la forma della pipeline (PDF → estrazione → processing → WebP/PNG → texture/viewer) e ora anche la disponibilità dei PDF reali. Restano da decidere in fase di implementazione (Fase 0/3 del piano):
-
-- lo strumento di estrazione specifico (es. `pdf-lib`, `pdf.js`, conversione manuale) — verificabile solo ispezionando i 3 PDF reali (testo selezionabile vs scansione, layout);
-- la migrazione di `files/` → `assets/source/` secondo la convenzione della pipeline.
+- Fonte immagini reale: materiale fornito dall'utente, spostato in `assets/source/distintivi/{specialita,brevetti,tappe}/` (file originali intatti, nessuna modifica distruttiva).
+- Nessuno scraping automatico da siti terzi in questo o futuri task di Fase 3, salvo nuova verifica esplicita di licenza.
+- Pipeline: JPEG sorgente → normalizzazione nome (mappa esplicita di correzioni per i refusi nei filename, non automatica) → slug → ottimizzazione WebP in `assets/processed/distintivi/**` → seed Supabase (P3-T02b).
+- "Brevetto" (cartella `brevetti/`, 15 immagini) è un concetto nuovo non presente in `docs/DATA_MODEL.md`: per indicazione dell'utente rappresenta un raggruppamento di più Specialità correlate ("super-specialità"), modellato come entità ufficiale a sé (tabella `brevetto`) con relazione N:N verso `specialita` (`brevetto_specialita`), completamento calcolato dalle `user_specialita` esistenti, senza tabella di progresso personale dedicata.
 
 ### Why
 
-I PDF erano assenti al momento della stesura iniziale di questo bootstrap; ora sono stati forniti dall'utente. Lo strumento di estrazione va comunque scelto ispezionando il contenuto reale dei file, non anticipato qui.
+Verificare la fonte prima di costruire una pipeline era un vincolo esplicito di questo stesso documento (`CLAUDE.md`, sezione "External/official data"). L'ispezione ha mostrato che l'assunzione iniziale (i PDF come fonte del catalogo) era sbagliata; lo scraping commerciale era l'alternativa più ovvia ma comporta un rischio di copyright non accettabile senza permesso verificato.
 
 ### Alternatives
 
-Da valutare in P3-T02a una volta ispezionato il contenuto dei 3 PDF.
+Contattare l'editore/negozio per un permesso esplicito di riuso immagini (scartata per ora, nessun contatto avviato); costruire il catalogo da zero senza immagini, solo testo (scartata: l'utente ha reso disponibile materiale reale).
 
 ### Consequences
 
-La Fase 3 (Specialità/Competenze/Tappe, asset pipeline) non è più bloccata da assenza totale di materiale sorgente. Rimane da fare, come primo task pratico: spostare/riorganizzare `files/` in `assets/source/` e ispezionare i PDF per scegliere lo strumento di estrazione — prima però va completata la fondazione (Fase 0), come da questo bootstrap che non implementa codice.
+- Il catalogo ufficiale di Specialità/Tappe/Brevetti userà le immagini in `assets/source/distintivi/`, di provenienza e licenza non verificate dall'assistente — responsabilità esplicitamente assunta dall'utente.
+- "Competenza" resta senza immagini reali (nessuna fonte fornita, e metodologicamente le Competenze sono progetti personalizzati senza badge fisso): seed minimo testuale, texture procedurale di Fase 2 invariata per questa entità.
+- Se in futuro emerge un'esigenza di materiale ufficiale AGESCI aggiuntivo (es. testo descrittivo/obiettivi ufficiali per Specialità), va riaperta una decisione dedicata con verifica di fonte/licenza, non riusata questa.
 
 ---
 

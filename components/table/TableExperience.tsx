@@ -2,8 +2,10 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { ObjectPanel } from "@/components/panel/ObjectPanel";
+import { type CardData, mergeSceneObjects } from "@/lib/scene/objects";
+import { SceneDataProvider } from "@/lib/scene/SceneDataContext";
 import { useSceneCapabilities } from "@/lib/scene/useSceneCapabilities";
 import { useSceneStore } from "@/lib/scene/store";
 import { TableFlat } from "./TableFlat";
@@ -33,11 +35,17 @@ const PerfOverlay = dynamic(
 
 const SHOW_PERF = process.env.NODE_ENV !== "production";
 
-export function TableExperience() {
+export function TableExperience({
+  cards = [],
+}: {
+  /** Specialità/Competenze/Tappe con progresso attivo (P3-T04), da Supabase. */
+  cards?: CardData[];
+}) {
   const { mode } = useSceneCapabilities();
   const focusedId = useSceneStore((state) => state.focusedId);
   const clear = useSceneStore((state) => state.clear);
   const reducedMotion = useReducedMotion();
+  const objects = useMemo(() => mergeSceneObjects(cards), [cards]);
 
   // Ogni cambio di modalità riparte dal tavolo: un oggetto aperto nella scena
   // 3D non deve restare a fuoco in una composizione che non lo mostra così.
@@ -52,33 +60,37 @@ export function TableExperience() {
   const focused = Boolean(focusedId);
 
   return (
-    <div
-      className="relative flex w-full flex-1 flex-col"
-      data-table-mode={mode}
-    >
-      <motion.div
-        className="relative flex min-h-[640px] flex-1 flex-col"
-        animate={{
-          filter: focused
-            ? "blur(4px) brightness(0.8)"
-            : "blur(0px) brightness(1)",
-        }}
-        transition={
-          reducedMotion ? { duration: 0 } : { duration: 0.45, ease: "easeOut" }
-        }
+    <SceneDataProvider objects={objects}>
+      <div
+        className="relative flex w-full flex-1 flex-col"
+        data-table-mode={mode}
       >
-        {mode === "scene3d" ? (
-          <div className="absolute inset-0">
-            <TableCanvas />
-          </div>
-        ) : (
-          <TableFlat />
-        )}
-      </motion.div>
+        <motion.div
+          className="relative flex min-h-[640px] flex-1 flex-col"
+          animate={{
+            filter: focused
+              ? "blur(4px) brightness(0.8)"
+              : "blur(0px) brightness(1)",
+          }}
+          transition={
+            reducedMotion
+              ? { duration: 0 }
+              : { duration: 0.45, ease: "easeOut" }
+          }
+        >
+          {mode === "scene3d" ? (
+            <div className="absolute inset-0">
+              <TableCanvas />
+            </div>
+          ) : (
+            <TableFlat />
+          )}
+        </motion.div>
 
-      <ObjectPanel />
+        <ObjectPanel />
 
-      {SHOW_PERF && mode === "scene3d" ? <PerfOverlay /> : null}
-    </div>
+        {SHOW_PERF && mode === "scene3d" ? <PerfOverlay /> : null}
+      </div>
+    </SceneDataProvider>
   );
 }
