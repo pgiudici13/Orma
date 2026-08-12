@@ -127,6 +127,8 @@ Nota operativa: la CLI `supabase` locale non è collegata al progetto remoto (`s
 
 Limiti dichiarati: (1) `brevetto_specialita` (composizione di ogni Brevetto) non è popolata, nessuna fonte disponibile la specifica; (2) Competenza non ha catalogo immagini reale, solo 5 voci segnaposto; (3) sul tavolo compare al più una carta per famiglia (semplificazione dichiarata in `lib/scene/objects.ts`), il resto del percorso si consulta dai cataloghi dedicati.
 
+**Fase 4 (Personal Data) completata, deploy incluso**: CRUD completo per le note (`updateNota`/`deleteNota` accanto ad `addNota` in `app/actions/personalProgress.ts`) e associazione Maestro (interno via ricerca per email esatta — funzione `find_profile_by_email`, SECURITY DEFINER, nessuna ricerca parziale — o esterno via `addMaestroEsterno`, senza mai creare un account) nella sezione "Maestro" del pannello. Lo schema DB (`nota`, `maestro_esterno`) esisteva già da P3-T03: questa fase copre solo la superficie applicativa mancante. Reparto e ricerca globale Maestri non esistono ancora (Fase 6/7/8): l'associazione del Maestro interno resta scoped alla sola email esatta, senza visibilità reciproca lato Maestro (fuori scope, non specificata dai documenti di prodotto). Migrazioni applicate al progetto Supabase reale; nessun nuovo advisor di sicurezza.
+
 ## 7. Modello dati ad alto livello
 
 Entità principali (dettaglio in [`docs/DATA_MODEL.md`](../docs/DATA_MODEL.md) e SDD §13):

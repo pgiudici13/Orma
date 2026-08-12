@@ -203,7 +203,9 @@ Tutti i task sono implementati e applicati al progetto Supabase reale (`ouffyxrh
 
 ---
 
-## Phase 4 — Personal Data (note, obiettivi, Maestri)
+## Phase 4 — Personal Data (note, obiettivi, Maestri) — **completata, deploy incluso**
+
+Lo schema DB (`nota`, `maestro_esterno`, colonne `maestro_profile_id`/`maestro_esterno_id` su `user_specialita`/`user_competenza`) esisteva già da P3-T03: questa fase ha aggiunto la superficie applicativa (Server Actions + UI nel pannello) mancante.
 
 ### P4-T01 — Note personali (CRUD)
 
@@ -211,6 +213,7 @@ Tutti i task sono implementati e applicati al progetto Supabase reale (`ouffyxrh
 - **Dipendenze**: P3-T05.
 - **Criteri di completamento**: RLS verificata; nessuna nota visibile ad altri utenti salvo condivisione esplicita futura (non nello scope attuale).
 - **Test necessari**: test RLS su note.
+- **Stato**: completato. `updateNota`/`deleteNota` in `app/actions/personalProgress.ts` (accanto ad `addNota`, ora con controllo esplicito dell'errore Supabase come `startSpecialita`/`startCompetenza`), filtro `id`+`profile_id` come difesa in profondità oltre alla RLS già esistente (`nota_update_own`/`nota_delete_own`, P3-T03). UI in `components/panel/ObjectPanel.tsx` (`NoteSection`): ogni nota è un form di modifica precompilato + un form di eliminazione, nessuna conferma richiesta (coerente con "Segna come completata").
 
 ### P4-T02 — Maestro interno (associazione a utente ORMA)
 
@@ -218,6 +221,7 @@ Tutti i task sono implementati e applicati al progetto Supabase reale (`ouffyxrh
 - **Dipendenze**: P3-T05.
 - **Criteri di completamento**: associazione visibile su entrambi i lati (utente e Maestro, secondo permessi).
 - **Test necessari**: test permessi di visibilità reciproca.
+- **Stato**: completato con uno scope ridotto dichiarato. Reparto (Fase 6/7) e ricerca globale Maestri (Fase 8) non esistono ancora e un utente non può leggere il profilo di un altro (RLS `profiles`): l'associazione avviene tramite ricerca per **email esatta**, funzione `find_profile_by_email` (SECURITY DEFINER, nessuna ricerca parziale/elenco, `supabase/migrations/20260812122725_find_profile_by_email.sql` + revoke `anon` in `20260812122815_find_profile_by_email_revoke_anon.sql`, vedi correzione in `CORRECTIONS.md`). `assignMaestroInterno` in `app/actions/personalProgress.ts`. Nessuna visibilità reciproca lato Maestro implementata (fuori scope, non specificata da `docs/PERMISSIONS.md` oltre al principio generale): il Maestro non vede oggi di essere stato associato.
 
 ### P4-T03 — Maestro esterno (contatto senza account)
 
@@ -226,6 +230,9 @@ Tutti i task sono implementati e applicati al progetto Supabase reale (`ouffyxrh
 - **File/componenti**: tabella `maestro_esterno` o equivalente, scoping per singolo utente.
 - **Criteri di completamento**: nessun record `auth.users` creato per un Maestro esterno.
 - **Test necessari**: test che verifica assenza di creazione account collaterale.
+- **Stato**: completato. `addMaestroEsterno` in `app/actions/personalProgress.ts`: valida `nome` (obbligatorio) e `contatto` (opzionale), inserisce su `maestro_esterno` (già esistente da P3-T03) e aggiorna `maestro_esterno_id` sulla riga di percorso, azzerando `maestro_profile_id` (vincolo di mutua esclusione a DB). UI condivisa con P4-T02 nella sezione "Maestro" del pannello, mostrata solo quando nessun Maestro è ancora associato.
+
+**Deploy**: migrazione applicata al progetto Supabase reale (`ouffyxrhxhzqcduvgpon`) via MCP Supabase. `get_advisors` post-deploy: nessun nuovo advisor di sicurezza (i warning esistenti — `confirm_parental_consent` callable da `anon`/`authenticated`, password leak protection disattivata — sono pre-esistenti; `find_profile_by_email` è callable solo da `authenticated`, come da disegno).
 
 ---
 

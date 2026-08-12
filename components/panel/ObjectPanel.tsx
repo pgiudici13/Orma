@@ -2,7 +2,14 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
-import { addNota, markCompleted } from "@/app/actions/personalProgress";
+import {
+  addMaestroEsterno,
+  addNota,
+  assignMaestroInterno,
+  deleteNota,
+  markCompleted,
+  updateNota,
+} from "@/app/actions/personalProgress";
 import {
   findSceneObject,
   type CardData,
@@ -186,11 +193,17 @@ function PanelSheet({
         )}
       </PanelSection>
 
-      <PanelSection title="Maestro">
-        <p className="font-sans text-sm leading-relaxed">
-          {object.card?.maestroNome ?? "Nessun Maestro associato."}
-        </p>
-      </PanelSection>
+      {object.kind !== "tappa" ? (
+        <PanelSection title="Maestro">
+          {object.card && object.card.kind !== "tappa" ? (
+            <MaestroSection kind={object.card.kind} card={object.card} />
+          ) : (
+            <p className="font-sans text-sm leading-relaxed">
+              Nessun Maestro associato.
+            </p>
+          )}
+        </PanelSection>
+      ) : null}
     </section>
   );
 }
@@ -266,6 +279,14 @@ function ProgressoSection({
   );
 }
 
+const fieldStyle = {
+  backgroundColor: "var(--paper-base)",
+  border: "1px solid color-mix(in srgb, var(--wood-dark) 22%, transparent)",
+  color: "var(--ink)",
+} as const;
+
+const linkButtonStyle = { color: "var(--accent)" } as const;
+
 function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
   return (
     <div className="flex flex-col gap-3 font-sans text-sm leading-relaxed">
@@ -276,13 +297,43 @@ function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
           {card.note.map((nota) => (
             <li
               key={nota.id}
-              className="rounded-[2px] p-2"
+              className="flex flex-col gap-2 rounded-[2px] p-2"
               style={{
                 backgroundColor:
                   "color-mix(in srgb, var(--paper-aged) 55%, transparent)",
               }}
             >
-              {nota.testo}
+              <form
+                action={updateNota.bind(null, nota.id)}
+                className="flex flex-col gap-2"
+              >
+                <textarea
+                  name="testo"
+                  rows={2}
+                  defaultValue={nota.testo}
+                  required
+                  className="rounded-[2px] p-2 text-sm"
+                  style={fieldStyle}
+                />
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    className="cursor-pointer text-[11px] tracking-wide underline underline-offset-2"
+                    style={linkButtonStyle}
+                  >
+                    Salva modifiche
+                  </button>
+                </div>
+              </form>
+              <form action={deleteNota.bind(null, nota.id)}>
+                <button
+                  type="submit"
+                  className="cursor-pointer text-[11px] tracking-wide underline underline-offset-2"
+                  style={linkButtonStyle}
+                >
+                  Elimina
+                </button>
+              </form>
             </li>
           ))}
         </ul>
@@ -297,19 +348,89 @@ function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
           placeholder="Aggiungi una nota…"
           required
           className="rounded-[2px] p-2 text-sm"
-          style={{
-            backgroundColor: "var(--paper-base)",
-            border:
-              "1px solid color-mix(in srgb, var(--wood-dark) 22%, transparent)",
-            color: "var(--ink)",
-          }}
+          style={fieldStyle}
         />
         <button
           type="submit"
           className="cursor-pointer self-start text-[11px] tracking-wide underline underline-offset-2"
-          style={{ color: "var(--accent)" }}
+          style={linkButtonStyle}
         >
           Salva nota
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function MaestroSection({
+  kind,
+  card,
+}: {
+  kind: "specialita" | "competenza";
+  card: CardData;
+}) {
+  if (card.maestroNome) {
+    return (
+      <p className="font-sans text-sm leading-relaxed">{card.maestroNome}</p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 font-sans text-sm leading-relaxed">
+      <p>Nessun Maestro associato.</p>
+
+      <form
+        action={assignMaestroInterno.bind(null, kind, card.id)}
+        className="flex flex-col gap-2"
+      >
+        <label className="text-[11px] tracking-wide uppercase opacity-70">
+          Maestro ORMA (email)
+        </label>
+        <input
+          type="email"
+          name="email"
+          placeholder="email@esempio.it"
+          required
+          className="rounded-[2px] p-2 text-sm"
+          style={fieldStyle}
+        />
+        <button
+          type="submit"
+          className="cursor-pointer self-start text-[11px] tracking-wide underline underline-offset-2"
+          style={linkButtonStyle}
+        >
+          Associa Maestro ORMA
+        </button>
+      </form>
+
+      <form
+        action={addMaestroEsterno.bind(null, kind, card.id)}
+        className="flex flex-col gap-2"
+      >
+        <label className="text-[11px] tracking-wide uppercase opacity-70">
+          Maestro esterno
+        </label>
+        <input
+          type="text"
+          name="nome"
+          placeholder="Nome"
+          required
+          className="rounded-[2px] p-2 text-sm"
+          style={fieldStyle}
+        />
+        <input
+          type="text"
+          name="contatto"
+          placeholder="Contatto (facoltativo)"
+          className="rounded-[2px] p-2 text-sm"
+          style={fieldStyle}
+        />
+        <button
+          type="submit"
+          className="cursor-pointer self-start text-[11px] tracking-wide underline underline-offset-2"
+          style={linkButtonStyle}
+        >
+          Aggiungi Maestro esterno
         </button>
       </form>
     </div>
