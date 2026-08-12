@@ -236,7 +236,9 @@ Lo schema DB (`nota`, `maestro_esterno`, colonne `maestro_profile_id`/`maestro_e
 
 ---
 
-## Phase 5 — Authentication
+## Phase 5 — Authentication — **completata, deploy incluso**
+
+P5-T02 non ha più richiesto di anticipare lo schema Reparto/Squadriglia completo di P6-T01: è stata creata solo la tabella `reparto` minima (id, nome), sufficiente a sbloccare l'onboarding. Squadriglia resta interamente in Fase 6/7.
 
 ### P5-T00 — Schema `profiles`: campi età/consenso + RLS
 
@@ -266,6 +268,7 @@ Lo schema DB (`nota`, `maestro_esterno`, colonne `maestro_profile_id`/`maestro_e
 - **Dipendenze**: P5-T01, P6-T01 (schema Reparto — richiede quindi che almeno lo schema base `reparto`/`squadriglia` di P6-T01 sia anticipato prima o in parallelo a questo task, non strettamente dopo la Fase 5).
 - **Criteri di completamento**: un utente senza Reparto ha un percorso di onboarding chiaro, non uno stato rotto.
 - **Test necessari**: test flusso onboarding senza Reparto assegnato.
+- **Stato**: completato. `supabase/migrations/20260812130000_reparto_onboarding.sql` — tabella `reparto` minima (id, nome; seed manuale, nessuna scrittura applicativa, come DEC-008), `profiles.reparto_id` (popolato solo dall'approvazione), `richiesta_reparto` (stato in_attesa/approvata/rifiutata, indice unico parziale per una sola richiesta pendente per utente), funzione `decidi_richiesta_reparto()` (SECURITY DEFINER). Onboarding utente in `app/onboarding-reparto/` (form di richiesta), approvazione admin in `app/admin/richieste-reparto/`, gate in `lib/supabase/middleware.ts` (redirect a `/onboarding-reparto` se `reparto_id` è nullo). L'approvazione riusa `profiles.is_admin` (DEC-015) come permesso — temporaneo, vedi [DEC-016](DECISIONS.md#dec-016--approvazione-reparto-riuso-temporaneo-di-is_admin), da sostituire quando arriverà il modello Capo/Admin-di-Reparto in P6-T03. Squadriglia resta interamente fuori scope.
 
 ### P5-T03 — Gestione sessione e impostazioni account
 
@@ -273,6 +276,9 @@ Lo schema DB (`nota`, `maestro_esterno`, colonne `maestro_profile_id`/`maestro_e
 - **Dipendenze**: P5-T01.
 - **Criteri di completamento**: modifica profilo persistita e coerente con RLS (utente modifica solo sé stesso).
 - **Test necessari**: test RLS su tabella profilo.
+- **Stato**: completato. `app/impostazioni/` (nome editabile via `components/settings/ProfiloForm.tsx`, `useActionState`; data di nascita e Reparto in sola lettura; logout). Nessuna migrazione necessaria: `nome` era già coperto da `profiles_update_own`. Nessuna navigazione persistente esisteva nell'app prima di questo task: aggiunto un piccolo link "Impostazioni" nell'angolo del tavolo (`components/table/TableExperience.tsx`), visibile solo quando nessun oggetto è a fuoco.
+
+**Deploy**: migrazioni `20260812130000_reparto_onboarding.sql` e `20260812130600_reparto_fk_indexes.sql` applicate al progetto Supabase reale (`ouffyxrhxhzqcduvgpon`) via MCP Supabase. `get_advisors` post-deploy: nessun advisor di sicurezza nuovo (il warning `authenticated_security_definer_function_executable` su `decidi_richiesta_reparto` è atteso, stesso pattern di `find_profile_by_email` — la funzione verifica `is_admin()` internamente); un fix di performance applicato subito dopo per gli indici FK mancanti su `profiles.reparto_id`/`richiesta_reparto.reparto_id`/`richiesta_reparto.decisa_da` (stesso tipo di fix di `20260812110000_rls_performance_fix.sql`, Fase 3). Nessun Reparto reale è stato seedato: `supabase/migrations/20260812130500_seed_reparto.sql` resta un template con nome placeholder, non applicato — da compilare a mano con il nome reale prima che l'onboarding sia utilizzabile in produzione.
 
 ---
 
@@ -284,6 +290,7 @@ Lo schema DB (`nota`, `maestro_esterno`, colonne `maestro_profile_id`/`maestro_e
 - **Dipendenze**: P0-T04.
 - **Criteri di completamento**: relazioni Reparto↔Squadriglia↔Profile corrette.
 - **Test necessari**: test di integrità referenziale.
+- **Nota**: la tabella `reparto` base (id, nome) esiste già da P5-T02 (`supabase/migrations/20260812130000_reparto_onboarding.sql`), insieme a `profiles.reparto_id`. Questo task resta necessario solo per `squadriglia` e per eventuali metadati aggiuntivi su `reparto` non previsti in Fase 5.
 
 ### P6-T02 — RLS multi-tenant per Reparto
 

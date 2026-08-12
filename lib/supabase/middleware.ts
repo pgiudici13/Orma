@@ -10,6 +10,15 @@ const PUBLIC_PATHS = [
   "/auth",
 ];
 
+// Esenti dal gate "Reparto non approvato" (P5-T02): l'onboarding stesso,
+// le impostazioni (utile anche in attesa di approvazione) e l'admin (che
+// deve poter approvare le richieste altrui senza esserne bloccato).
+const REPARTO_GATE_EXEMPT_PATHS = [
+  "/onboarding-reparto",
+  "/impostazioni",
+  "/admin",
+];
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -51,7 +60,7 @@ export async function updateSession(request: NextRequest) {
   if (user && !isPublicPath) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("stato_consenso_genitoriale")
+      .select("stato_consenso_genitoriale, reparto_id")
       .eq("id", user.id)
       .single();
 
@@ -62,6 +71,16 @@ export async function updateSession(request: NextRequest) {
     if (inAttesa && !isAttesaPath) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/attesa-consenso";
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    const isRepartoGateExempt = REPARTO_GATE_EXEMPT_PATHS.some((path) =>
+      request.nextUrl.pathname.startsWith(path),
+    );
+
+    if (!inAttesa && !profile?.reparto_id && !isRepartoGateExempt) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/onboarding-reparto";
       return NextResponse.redirect(redirectUrl);
     }
   }

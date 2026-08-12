@@ -76,6 +76,9 @@ Orma/
 │   ├── specialita/         # catalogo + avvio percorso (P3-T04)
 │   ├── competenze/         # catalogo + avvio percorso (P3-T06)
 │   ├── tappe/               # percorso Tappe, informativo (P3-T07)
+│   ├── onboarding-reparto/  # richiesta associazione Reparto (P5-T02)
+│   ├── impostazioni/        # profilo, logout (P5-T03)
+│   ├── admin/                # visibilità read-only (DEC-015) + richieste-reparto/ (P5-T02)
 │   └── actions/             # Server Action condivise (progresso, note)
 ├── components/
 │   ├── panel/              # pannello di contenuto DOM (condiviso 3D/2D)
@@ -129,13 +132,15 @@ Limiti dichiarati: (1) `brevetto_specialita` (composizione di ogni Brevetto) non
 
 **Fase 4 (Personal Data) completata, deploy incluso**: CRUD completo per le note (`updateNota`/`deleteNota` accanto ad `addNota` in `app/actions/personalProgress.ts`) e associazione Maestro (interno via ricerca per email esatta — funzione `find_profile_by_email`, SECURITY DEFINER, nessuna ricerca parziale — o esterno via `addMaestroEsterno`, senza mai creare un account) nella sezione "Maestro" del pannello. Lo schema DB (`nota`, `maestro_esterno`) esisteva già da P3-T03: questa fase copre solo la superficie applicativa mancante. Reparto e ricerca globale Maestri non esistono ancora (Fase 6/7/8): l'associazione del Maestro interno resta scoped alla sola email esatta, senza visibilità reciproca lato Maestro (fuori scope, non specificata dai documenti di prodotto). Migrazioni applicate al progetto Supabase reale; nessun nuovo advisor di sicurezza.
 
+**Fase 5 (Authentication) completata, deploy incluso**: oltre a registrazione/login/consenso genitoriale (già presenti da P5-T00/T01/T01b), aggiunti onboarding Reparto (P5-T02) e impostazioni account (P5-T03). Schema minimo (`supabase/migrations/20260812130000_reparto_onboarding.sql`): tabella `reparto` (seed manuale, stesso principio di DEC-008), `profiles.reparto_id` (popolato solo dall'approvazione), `richiesta_reparto` (richiesta/storico, una sola pendente per utente) e la funzione `decidi_richiesta_reparto()` (SECURITY DEFINER) come unico punto di scrittura privilegiata. L'approvazione riusa `profiles.is_admin` (DEC-015) — placeholder temporaneo, [DEC-016](DECISIONS.md#dec-016--approvazione-reparto-riuso-temporaneo-di-is_admin), da sostituire con un ruolo Capo/Admin-di-Reparto in P6-T03. Superficie: `app/onboarding-reparto/` (richiesta), `app/admin/richieste-reparto/` (approvazione), `app/impostazioni/` (profilo, logout). Gate a tre stadi in `lib/supabase/middleware.ts`: non autenticato → login; consenso genitoriale `in_attesa` → `/attesa-consenso`; Reparto non approvato → `/onboarding-reparto`. Squadriglia resta interamente fuori scope (Fase 6/7). Nessun Reparto reale seedato: `20260812130500_seed_reparto.sql` è un template non applicato. Migrazioni applicate al progetto reale; un fix di performance (indici FK mancanti) applicato subito dopo, nessun advisor di sicurezza nuovo.
+
 ## 7. Modello dati ad alto livello
 
 Entità principali (dettaglio in [`docs/DATA_MODEL.md`](../docs/DATA_MODEL.md) e SDD §13):
 
 - **Contenuto ufficiale** (condiviso, non duplicato per utente): `Specialita`, `Competenza`, `Tappa`.
 - **Percorso personale** (relazione utente↔contenuto ufficiale): `UserSpecialita`, `UserCompetenza`, `UserTappa` — stato, progresso, obiettivi completati, Maestro associato. Le note sono probabilmente un'entità separata collegata (una o più per Specialità/Competenza/Tappa), non una singola colonna — dettaglio in SDD §13.
-- **Identità/organizzazione**: `User`, `Profile`, `Reparto`, `Squadriglia`.
+- **Identità/organizzazione**: `User`, `Profile` (con `reparto_id`, popolato solo dall'approvazione), `Reparto` (schema minimo da Fase 5, seed manuale), `RichiestaReparto` (richiesta/storico di associazione), `Squadriglia` (non ancora implementata, Fase 6/7).
 - **Maestri**: Maestro interno (ha un `User`) vs Maestro esterno (contatto senza account).
 - **Archivio/attività**: `Uscita`, `Campo`, `Luogo`, documenti, fotografie.
 
@@ -188,6 +193,7 @@ Il popolamento e la manutenzione del catalogo ufficiale restano a carico del pro
 - Nessuna service-role key esposta al client.
 - Privacy by default: dato privato salvo condivisione esplicita.
 - Registrazione minorenni: auto-registrazione con data di nascita; sotto i 14 anni l'account resta bloccato in attesa di consenso genitoriale verificato via link email univoco (consenso, non semplice apertura) — vedi [DEC-010](DECISIONS.md#dec-010--registrazione-minorenni-auto-registrazione-con-consenso-genitoriale-verificato).
+- Gate applicativo a tre stadi (`lib/supabase/middleware.ts`): non autenticato → `/login`; consenso genitoriale `in_attesa` → `/attesa-consenso`; Reparto non ancora approvato → `/onboarding-reparto`. L'approvazione delle richieste Reparto è ristretta a `profiles.is_admin`, un permesso temporaneo — vedi [DEC-016](DECISIONS.md#dec-016--approvazione-reparto-riuso-temporaneo-di-is_admin).
 - Nessuna funzionalità di ricerca/esposizione pubblica di profili senza rispettare comunque privacy by default.
 
 Dettaglio: [`docs/PERMISSIONS.md`](../docs/PERMISSIONS.md), SDD §14–16, [`docs/legal/PRIVACY_POLICY.md`](../docs/legal/PRIVACY_POLICY.md).

@@ -503,3 +503,32 @@ Nessuna: l'accesso via dashboard Supabase esiste già, ma non copre il caso "ved
 
 - Prima apertura del modello "privacy by default" a un ruolo con visibilità estesa. Ogni tabella futura con dati personali (Fase 4/6/7/9) che debba essere visibile ad admin richiede la stessa policy additiva read-only con lo stesso vincolo di esclusione `in_attesa` — non estendere l'admin a scrittura senza riaprire questa decisione.
 - Nessuna UI pubblicizza `/admin` a chi non è admin: la pagina esiste ma non è raggiungibile né linkata per gli altri utenti.
+
+---
+
+## DEC-016 — Approvazione Reparto: riuso temporaneo di `is_admin`
+
+### Status
+
+Accepted (temporanea — da sostituire in P6-T03)
+
+### Context
+
+P5-T02 introduce un flusso di richiesta/approvazione per l'appartenenza a un Reparto: un nuovo utente registrato richiede l'associazione a un Reparto esistente (seedato a mano dal proprietario del progetto, stesso principio di DEC-008) e la richiesta resta pendente finché non viene approvata. Il modello di ruolo Capo/Admin-di-Reparto scoped-per-Reparto (menzionato in `docs/PERMISSIONS.md`, `docs/SDD.md` §6/§15) è previsto solo in Fase 6 (P6-T03) e non esiste ancora. Serve comunque un permesso di approvazione operativo da subito, senza costruire l'intera Fase 6.
+
+### Decision
+
+Si riusa `profiles.is_admin` (DEC-015) come unico permesso abilitante per `decidi_richiesta_reparto()` (SECURITY DEFINER, `supabase/migrations/20260812130000_reparto_onboarding.sql`). Nessuna policy RLS di UPDATE viene aggiunta per admin su `profiles`/`richiesta_reparto`: la scrittura passa esclusivamente da questa funzione, per non violare l'invariante "sola lettura" di DEC-015. `profiles.reparto_id` è bloccato alla scrittura self-service dallo stesso trigger che protegge i campi di consenso genitoriale (`profiles_block_self_consent_update`).
+
+### Why
+
+A questa scala (community piccola e nota, DEC-010) un admin globale è sufficiente e non richiede di anticipare un modello di ruolo per-Reparto non ancora progettato. Isolare la scrittura in un'unica funzione la rende sostituibile con un controllo `is_capo_reparto(reparto_id)` in P6-T03 senza toccare le RLS esistenti.
+
+### Alternatives
+
+Anticipare il modello di ruolo Capo/Admin-di-Reparto già in Fase 5: scartato, fuori scope per questo task e prematuro senza i requisiti di P6-T03.
+
+### Consequences
+
+- Quando P6-T03 introdurrà il modello di ruolo per-Reparto, `decidi_richiesta_reparto()` va aggiornata per verificare quel ruolo invece di (o in aggiunta a) `is_admin()` — questa decisione va rivista in quel momento, non semplicemente estesa.
+- Squadriglia resta interamente fuori scope: solo la tabella `reparto` (minima: `id`, `nome`) è stata creata in P5-T02.

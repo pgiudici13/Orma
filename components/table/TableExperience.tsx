@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { ObjectPanel } from "@/components/panel/ObjectPanel";
 import { type CardData, mergeSceneObjects } from "@/lib/scene/objects";
@@ -88,6 +89,16 @@ export function TableExperience({
         </motion.div>
 
         <ObjectPanel />
+
+        {!focused ? (
+          <Link
+            href="/impostazioni"
+            className="absolute top-3 right-3 z-10 font-sans text-[11px] tracking-wide underline underline-offset-2"
+            style={{ color: "color-mix(in srgb, var(--ink) 55%, transparent)" }}
+          >
+            Impostazioni
+          </Link>
+        ) : null}
 
         {SHOW_PERF && mode === "scene3d" ? <PerfOverlay /> : null}
       </div>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -78,6 +79,14 @@ export default async function AdminPage() {
       >
         Utenti
       </h1>
+
+      <Link
+        href="/admin/richieste-reparto"
+        className="mt-2 inline-block font-sans text-[11px] tracking-wide underline underline-offset-2"
+        style={{ color: "var(--accent)" }}
+      >
+        Richieste Reparto in attesa
+      </Link>
 
       <div className="mt-8 overflow-x-auto">
         <table className="w-full border-collapse text-left font-sans text-sm">
