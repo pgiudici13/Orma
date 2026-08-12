@@ -73,6 +73,8 @@ Orma/
 ├── CLAUDE.md              # istruzioni operative per Claude Code
 ├── IDEA.md                # visione di prodotto originale
 ├── app/                    # Next.js App Router (bootstrap Fase 0)
+├── components/
+│   └── table/              # prototipo statico scena tavolo (Fase 1, non interattivo)
 ├── public/
 ├── supabase/
 │   ├── config.toml
@@ -83,6 +85,7 @@ Orma/
 │   ├── DATA_MODEL.md
 │   ├── PERMISSIONS.md
 │   ├── DESIGN.md
+│   ├── VISUAL_REFERENCE.md # palette/tipografia concrete (Fase 1)
 │   └── SDD.md              # specifica tecnica (questo bootstrap)
 └── .claude/
     ├── PROJECT.md           # questo file
@@ -92,6 +95,8 @@ Orma/
 ```
 
 **Fase 0 (Foundation) completata**: Next.js 16 (TypeScript, App Router, strict mode) con ESLint + Prettier, Tailwind CSS (DEC-009), progetto Supabase creato (org "Scout", regione eu-central-1, piano free), progetto Vercel collegato al repository GitHub `pgiudici13/Orma` con preview deployment automatici. Deploy di produzione raggiungibile su https://orma-scout.vercel.app. Nessuno schema DB applicativo ancora presente (Fase 3+).
+
+**Fase 1 (Design / Visual Prototype) completata**: direzione visiva tradotta in `docs/VISUAL_REFERENCE.md` (palette da materiali reali — legno/carta/tessuto/metallo — e tipografia: Geist Sans per la UI funzionale, Newsreader come serif editoriale per titoli/contenuto carte), token materializzati in `app/globals.css`/`app/layout.tsx`. Libreria di transizioni scelta: `motion` (DEC-012). Primo prototipo statico 2D della scena tavolo in `components/table/` (Table, TableSurface, Card, Notebook, Calendar, LooseSheet, Pencil, Compass, FadeIn), non interattivo, che sostituisce il placeholder in `app/page.tsx`. Verificato in browser desktop/tablet; mobile non ottimizzato (demandato a P2-T05).
 
 Nota operativa: la CLI `supabase` locale non è collegata al progetto remoto (`supabase link` richiede `supabase login` interattivo, non eseguibile in sessione headless) — le migrazioni verranno applicate tramite l'MCP Supabase (`apply_migration`) finché non si esegue il login manuale.
 

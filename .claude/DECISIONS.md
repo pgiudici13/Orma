@@ -347,3 +347,36 @@ Usare [Resend](https://resend.com) per l'invio dell'email di richiesta consenso 
 
 - Nuova dipendenza esterna: richiede una API key Resend (`RESEND_API_KEY`) come variabile d'ambiente server-side, mai esposta al client.
 - Richiede un mittente verificato (dominio o indirizzo) su Resend prima che l'invio funzioni in produzione.
+
+---
+
+## DEC-012 — Libreria animazione 2D/transizioni UI: `motion`
+
+### Status
+
+Accepted
+
+### Context
+
+P1-T03 richiede di scegliere la libreria per le transizioni non-3D (apertura pannelli contenuto, fade, blur) coerente con "animazioni fluide, non eccessive" (`docs/DESIGN.md`). La scelta deve reggere anche il caso d'uso futuro vincolante di `docs/UX.md`: apertura di un oggetto della scena con pattern focus → leggero movimento camera → tavolo sfocato sullo sfondo → contenuto → chiusura, implementato in Fase 2 (P2-T04) sul livello DOM/2D dei pannelli di contenuto (la scena 3D vera e propria resta React Three Fiber, DEC-003).
+
+### Decision
+
+Usare `motion` (pacchetto npm `motion`, ex Framer Motion) per tutte le transizioni DOM/2D: apertura/chiusura pannelli, fade, blur di sfondo, shared-element transition per "un oggetto che si solleva e si apre restando la stessa entità visiva". Non sostituisce l'animazione della scena 3D (Fase 2 userà `useFrame`/valori Three nativi per il movimento camera).
+
+### Why
+
+- Copre nativamente l'intero pattern UX richiesto: `AnimatePresence` per enter/exit coordinati di contenuto che si apre/chiude, `layoutId` per shared-layout transition (l'oggetto che "si solleva e si avvicina" restando lo stesso elemento, non un cambio di pagina — requisito esplicito di `docs/UX.md`), animazione nativa di `filter: blur()` combinata con `opacity`/`scale`, spring physics configurabili per un movimento "fisicamente plausibile" (`docs/DESIGN.md`).
+- Integrazione ufficiale con React 19/Next.js App Router; componenti client isolabili (`"use client"`) senza impatto sui Server Component esistenti.
+- Scegliendola ora evita di dover cambiare libreria a metà progetto quando in Fase 2 si implementa il pattern completo.
+
+### Alternatives
+
+- **CSS transitions/animations pure**: sufficienti per fade/slide semplici, ma senza orchestrazione dichiarativa di sequenze multi-step né shared-element transition — richiederebbe reimplementare a mano ciò che `AnimatePresence`/`layoutId` offrono, con più codice e più rischio di stati inconsistenti durante l'exit animation. Restano comunque la scelta per le micro-interazioni CSS-only più semplici (hover, piccoli cambi di colore), che non passano da `motion`.
+- **`@react-spring/web`**: fisica a molla valida, ma API meno ergonomica per orchestrazione dichiarativa enter/exit multi-elemento e nessun equivalente pronto all'uso di `layoutId` per lo shared-layout richiesto dal pattern camera/focus.
+
+### Consequences
+
+- `motion` aggiunta come dependency in `package.json`.
+- Il layer 3D (R3F, Fase 2) e il layer DOM/2D (`motion`) restano concettualmente separati, coerente con DEC-003/DEC-009.
+- Uso iniziale minimo (P1-T02): un solo wrapper (`FadeIn`) per validare l'integrazione, nessuna orchestrazione complessa finché non serve in Fase 2.

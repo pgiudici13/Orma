@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { login } from "./actions";
 
 export default function LoginPage() {
@@ -11,7 +12,7 @@ export default function LoginPage() {
     <div className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-16 dark:bg-black">
       <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
         <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-          Accedi a ORMA
+          Accedi a <Logo className="text-2xl" />
         </h1>
 
         <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
