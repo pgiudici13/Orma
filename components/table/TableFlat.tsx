@@ -1,0 +1,175 @@
+"use client";
+
+import { Logo } from "@/components/Logo";
+import {
+  SCENE_OBJECTS,
+  sceneObjectAriaLabel,
+  type SceneObject,
+} from "@/lib/scene/objects";
+import { useSceneStore } from "@/lib/scene/store";
+import { Calendar } from "./Calendar";
+import { Card } from "./Card";
+import { Compass } from "./Compass";
+import { FadeIn } from "./FadeIn";
+import { LooseSheet } from "./LooseSheet";
+import { Notebook } from "./Notebook";
+import { Pencil } from "./Pencil";
+import { TableSurface } from "./TableSurface";
+
+/**
+ * Composizione 2D del tavolo (DEC-013).
+ *
+ * Serve mobile, i browser senza WebGL e chi ha chiesto movimento ridotto. Non è
+ * la scena 3D rimpicciolita: su schermi stretti gli oggetti sono ricomposti in
+ * una colonna, come un tavolo visto da vicino invece che dall'alto
+ * (`docs/UX.md` — l'esperienza mobile va riprogettata, non compressa).
+ *
+ * Gli oggetti aprono lo stesso `ObjectPanel` della scena 3D, tramite lo stesso
+ * store: il pattern di interazione è identico su tutti i formati.
+ */
+
+/** Posizione degli oggetti nella composizione larga (desktop senza WebGL). */
+const WIDE_LAYOUT: Record<
+  string,
+  { top: string; left: string; rotate: number }
+> = {
+  taccuino: { top: "20%", left: "13%", rotate: -6 },
+  "specialita-nodi": { top: "26%", left: "38%", rotate: -3 },
+  "tappa-scoperta": { top: "22%", left: "72%", rotate: 2 },
+  "competenza-fede": { top: "56%", left: "58%", rotate: 4 },
+  calendario: { top: "60%", left: "16%", rotate: -2 },
+  foglio: { top: "74%", left: "40%", rotate: 5 },
+  matita: { top: "84%", left: "62%", rotate: -8 },
+  bussola: { top: "76%", left: "84%", rotate: 0 },
+};
+
+/** Ordine di lettura nella composizione stretta (mobile). */
+const NARROW_ORDER = [
+  "specialita-nodi",
+  "tappa-scoperta",
+  "competenza-fede",
+  "calendario",
+  "taccuino",
+  "foglio",
+] as const;
+
+function ObjectVisual({ object }: { object: SceneObject }) {
+  switch (object.kind) {
+    case "specialita":
+    case "competenza":
+    case "tappa":
+      return <Card variant={object.kind} title={object.title} />;
+    case "taccuino":
+      return <Notebook />;
+    case "calendario":
+      return <Calendar day="12" month="Agosto" />;
+    case "foglio":
+      return <LooseSheet note="Prossima uscita: sabato ore 8:30, stazione." />;
+    case "matita":
+      return <Pencil className="w-32" />;
+    case "bussola":
+      return <Compass className="w-20" />;
+  }
+}
+
+function Interactive({ object }: { object: SceneObject }) {
+  const focus = useSceneStore((state) => state.focus);
+
+  if (!object.interactive) {
+    return (
+      <div aria-hidden>
+        <ObjectVisual object={object} />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      data-scene-hotspot={object.id}
+      aria-label={sceneObjectAriaLabel(object)}
+      className="block cursor-pointer rounded-[3px] outline-offset-4 transition-transform duration-200 hover:-translate-y-1 focus-visible:outline-2"
+      style={{ outlineColor: "var(--accent)" }}
+      onClick={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        focus(object.id, {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        });
+      }}
+    >
+      <ObjectVisual object={object} />
+    </button>
+  );
+}
+
+export function TableFlat() {
+  const narrowObjects = NARROW_ORDER.map((id) => {
+    const object = SCENE_OBJECTS.find((candidate) => candidate.id === id);
+    if (!object) throw new Error(`Oggetto assente dalla composizione: ${id}`);
+    return object;
+  });
+
+  return (
+    <div className="relative min-h-[640px] w-full flex-1 overflow-hidden">
+      <TableSurface />
+
+      <Logo
+        className="pointer-events-none absolute top-[4%] left-1/2 -translate-x-1/2 text-3xl"
+        style={{
+          color: "color-mix(in srgb, var(--wood-dark) 55%, transparent)",
+          textShadow: "0 1px 0 color-mix(in srgb, white 12%, transparent)",
+        }}
+      />
+
+      {/* Composizione larga: oggetti sparsi sul piano, vista dall'alto. */}
+      <div className="absolute inset-0 hidden md:block">
+        {SCENE_OBJECTS.map((object, index) => {
+          const placement = WIDE_LAYOUT[object.id];
+          if (!placement) return null;
+
+          return (
+            <div
+              key={object.id}
+              className="absolute"
+              style={{
+                top: placement.top,
+                left: placement.left,
+                transform: `translate(-50%, -50%) rotate(${placement.rotate}deg)`,
+              }}
+            >
+              <FadeIn delay={index * 0.05}>
+                <Interactive object={object} />
+              </FadeIn>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Composizione stretta: il tavolo visto da vicino, in colonna. */}
+      <div className="flex flex-col items-center gap-6 px-6 pt-24 pb-16 md:hidden">
+        {narrowObjects.map((object, index) => (
+          <FadeIn
+            key={object.id}
+            delay={index * 0.05}
+            className="w-full max-w-[17rem]"
+          >
+            <div
+              className="flex justify-center"
+              style={{
+                transform: `rotate(${index % 2 === 0 ? -1.5 : 1.5}deg)`,
+              }}
+            >
+              <Interactive object={object} />
+            </div>
+          </FadeIn>
+        ))}
+
+        <div className="mt-2 flex items-end gap-8 opacity-90">
+          <Pencil className="w-24 rotate-[-8deg]" />
+          <Compass className="w-16" />
+        </div>
+      </div>
+    </div>
+  );
+}

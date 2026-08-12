@@ -72,7 +72,7 @@ Usare Supabase come unico backend: Postgres per i dati relazionali, Supabase Aut
 
 ### Status
 
-Proposed
+Accepted (confermata in Fase 2, P2-T01)
 
 ### Context
 
@@ -103,27 +103,31 @@ Usare React Three Fiber (wrapper React di Three.js) per la scena tavolo, le cart
 
 ### Status
 
-Open Decision
+Accepted
 
 ### Context
 
-Nessuna scelta di state management (Zustand, Redux, React Context, Jotai, TanStack Query per i dati server) è menzionata in nessun documento di prodotto esistente.
+La Fase 2 (P2-T02) richiede uno stato di scena condiviso fra la scena 3D (quale oggetto è a fuoco, dove deve andare la camera) e la UI DOM (pannello di contenuto, blur di sfondo). Nessuna scelta di state management era stata fatta.
 
 ### Decision
 
-Da decidere in fase di design tecnico, prima della Fase 2 (Tavolo interattivo) del piano in `TODO.md`.
+**Zustand** per lo stato di presentazione della scena (`lib/scene/store.ts`: oggetto a fuoco e punto dello schermo da cui è stato aperto). I dati di dominio non passano da qui: contenuto ufficiale e dati personali restano su Server Components/Supabase (SDD §9).
 
 ### Why
 
-N/A — nessuna decisione presa.
+- È lo store canonico dell'ecosistema React Three Fiber: lo stato si può leggere dentro `useFrame` senza rerender dell'albero React, cosa che con Context costringerebbe a rerenderizzare i consumer ad ogni cambio di focus.
+- Lo stesso store serve identico alla scena 3D e alla composizione 2D di fallback, senza duplicare la logica di apertura/chiusura.
+- Dipendenza minima (~1 kB) e senza provider da montare, quindi nessun impatto sui Server Component esistenti.
 
 ### Alternatives
 
-- Da valutare: stato scena 3D separato da stato dati server (es. Zustand per stato scena/camera, TanStack Query o Server Components per dati Supabase).
+- **React Context + useReducer**: zero dipendenze, sufficiente per la quantità di stato attuale, ma ogni cambio di focus rerenderizza i consumer e richiede attenzione per non toccare il render loop 3D.
+- **Valtio / Jotai**: entrambe usate con R3F, nessun vantaggio concreto qui rispetto a Zustand.
 
 ### Consequences
 
-Bloccante solo per l'implementazione della scena interattiva (Fase 2), non per la fase di fondazione/design attuale.
+- `zustand` aggiunta come dependency.
+- Lo store contiene **solo** stato di presentazione: se in futuro servisse cache di dati server, va aperta una decisione separata (TanStack Query o equivalente), non estesa questa.
 
 ---
 
@@ -164,23 +168,33 @@ La Fase 3 (Specialità/Competenze/Tappe, asset pipeline) non è più bloccata da
 
 ### Status
 
-Open Decision
+Accepted
 
 ### Context
 
-Nessun framework di test è ancora scelto; non esiste codice da testare.
+Da chiudere prima della Fase 2 (tavolo interattivo), che introduce la prima logica non banale lato client: stato di scena, geometrie condivise, budget texture, pattern di apertura/chiusura degli oggetti.
 
 ### Decision
 
-Da definire quando si introduce il primo codice applicativo. Direzione minima attesa: type-check (`tsc --noEmit`) e lint obbligatori ad ogni commit significativo; test unitari per logica di dominio (permessi, calcolo progresso); test E2E leggeri per i flussi critici (login, apertura carta) quando l'app avrà una UI stabile.
+- **Vitest + Testing Library** (ambiente `jsdom`) per unit e component test: `npm run test`, sorgenti in `tests/unit/`.
+- **Playwright** (solo Chromium) per gli end-to-end: `npm run test:e2e`, sorgenti in `tests/e2e/`.
+- `tsc --noEmit` e `eslint` restano obbligatori ad ogni change significativo.
+
+### Why
+
+- Vitest condivide la pipeline di trasformazione di Vite ed è immediato da configurare su un progetto TypeScript/React senza aggiungere Babel o Jest.
+- Playwright è l'unico dei due in grado di verificare la scena 3D: serve un browser reale con WebGL, e serve una pagina **visibile** (vedi `CORRECTIONS.md`).
+- Gli E2E autenticati si saltano da soli senza `E2E_EMAIL`/`E2E_PASSWORD`, così nessuna credenziale finisce nel repository e la suite resta eseguibile da chiunque.
 
 ### Alternatives
 
-Vitest + Testing Library per unit/component; Playwright per E2E — scelta standard nell'ecosistema Next.js/Vercel, da confermare in fase di implementazione.
+- **Jest + Testing Library**: equivalente sul piano funzionale, più configurazione per TypeScript/ESM.
+- **Cypress** al posto di Playwright: nessun vantaggio qui, supporto WebGL headless meno diretto.
 
 ### Consequences
 
-Nessuna finché non esiste codice. Da chiudere prima della Fase 2.
+- Le soglie del budget di performance 3D (§10 SDD) sono verificate automaticamente: la scena espone i contatori del renderer su `window.__ormaPerf` **solo in sviluppo** e l'E2E le controlla.
+- Playwright richiede `npx playwright install chromium` sulle macchine dove si eseguono gli E2E, e i flag SwiftShader configurati in `playwright.config.ts` per avere WebGL in headless.
 
 ---
 
@@ -380,3 +394,75 @@ Usare `motion` (pacchetto npm `motion`, ex Framer Motion) per tutte le transizio
 - `motion` aggiunta come dependency in `package.json`.
 - Il layer 3D (R3F, Fase 2) e il layer DOM/2D (`motion`) restano concettualmente separati, coerente con DEC-003/DEC-009.
 - Uso iniziale minimo (P1-T02): un solo wrapper (`FadeIn`) per validare l'integrazione, nessuna orchestrazione complessa finché non serve in Fase 2.
+
+---
+
+## DEC-013 — Scena 3D su desktop/tablet, composizione 2D dedicata altrove
+
+### Status
+
+Accepted
+
+### Context
+
+`docs/UX.md` e `docs/DESIGN.md` indicano desktop/tablet come riferimento primario per la scena tavolo e chiedono esplicitamente che mobile abbia una composizione **riprogettata**, non una versione rimpicciolita. In più la scena 3D non è sempre disponibile: WebGL può mancare o essere disattivato, e chi imposta `prefers-reduced-motion` non deve subire movimenti di camera.
+
+### Decision
+
+Una sola esperienza, due rese, scelte a runtime da `lib/scene/useSceneCapabilities.ts`:
+
+| Condizione | Resa |
+| --- | --- |
+| Viewport ≥ 768px, WebGL disponibile, nessuna richiesta di movimento ridotto | scena 3D (`components/three/TableCanvas.tsx`) |
+| Viewport < 768px | composizione 2D verticale (`components/table/TableFlat.tsx`) |
+| WebGL assente o `prefers-reduced-motion: reduce` | composizione 2D |
+| SSR e prima paint | composizione 2D |
+
+Le due rese condividono la definizione degli oggetti (`lib/scene/objects.ts`), lo store (`lib/scene/store.ts`) e il pannello di contenuto (`components/panel/ObjectPanel.tsx`): cambia la rappresentazione, non il modello di interazione. Il codice 3D è caricato con `next/dynamic` (`ssr: false`), quindi chi resta sulla composizione 2D non scarica Three.js.
+
+### Why
+
+- Il prototipo 2D di Fase 1 era già stato validato visivamente: riusarlo come composizione mobile costa meno che ridisegnare da zero e mantiene lo stesso linguaggio materiale.
+- La composizione 2D funziona senza JavaScript e senza GPU, quindi il contenuto resta raggiungibile anche dove la scena 3D non può esistere (SDD NFR-6).
+- Evita il vincolo, altrimenti inevitabile, di far reggere alla stessa scena WebGL sia il desktop sia i device mobili di fascia bassa.
+
+### Alternatives
+
+- **Una sola scena 3D per tutti i formati**: più coerente sulla carta, ma senza alcun fallback se WebGL manca e con un costo GPU non giustificato su mobile.
+- **Rotta separata `/tavolo` per il 3D**: lascerebbe due Home in parallelo da mantenere.
+
+### Consequences
+
+- Il vecchio `components/table/Table.tsx` (prototipo statico P1-T02) è stato sostituito da `TableFlat.tsx`, che è interattivo e responsive.
+- Su viewport strette esistono nel DOM entrambe le composizioni 2D (larga e stretta), una delle due nascosta con `display: none`: gli identificatori `data-scene-hotspot` non sono quindi univoci nel documento, cosa di cui i test devono tenere conto.
+
+---
+
+## DEC-014 — Niente post-processing: sfocatura e scurimento sul layer DOM
+
+### Status
+
+Accepted
+
+### Context
+
+Il pattern di apertura di `docs/UX.md` chiede che, aperto un oggetto, il tavolo resti visibile ma sfocato e leggermente più scuro. La via "da manuale" in Three.js sarebbe un `EffectComposer` con un pass di blur.
+
+### Decision
+
+Nessun post-processing 3D. La sfocatura e il calo di luminosità sono una transizione CSS `filter` sul contenitore DOM della scena, animata con `motion` (DEC-012).
+
+### Why
+
+- Evita una dipendenza aggiuntiva (`@react-three/postprocessing`) e un intero render target in più, con il costo GPU relativo — proprio ciò che `CLAUDE.md` chiede di evitare su mobile.
+- Con `frameloop="demand"` la scena è ferma mentre il pannello è aperto: il browser compone un layer già sfocato, senza ridisegnare nulla.
+- Lo stesso effetto si applica identico alla composizione 2D di fallback, che non ha alcun renderer 3D.
+
+### Alternatives
+
+- **`EffectComposer` + blur pass**: qualità del blur migliore e limitabile per profondità, ma dipendenza e costo per un effetto che qui è puramente di contesto.
+
+### Consequences
+
+- L'oggetto a fuoco viene sfocato insieme al resto della scena: la leggibilità del contenuto è affidata al pannello DOM, non alla carta 3D. Il blur è tenuto basso (4px) proprio perché l'oggetto resti riconoscibile.
+- Se in futuro servisse un blur selettivo (sfondo sfocato, oggetto nitido), va riaperta questa decisione.

@@ -59,8 +59,8 @@ Supabase (Postgres + Auth + Storage + RLS)
 ```
 
 - **Frontend**: React con Next.js, deploy su Vercel. Scelta _proposta_ in `IDEA.md`, non ancora vincolante — vedi [DEC-001](DECISIONS.md).
-- **3D**: Three.js / React Three Fiber, usato solo dove aumenta il realismo della scena tavolo/carte, non ovunque.
-- **Stato**: da definire quando si passa all'implementazione (vedi Open Decision in `DECISIONS.md`).
+- **3D**: Three.js / React Three Fiber ([DEC-003](DECISIONS.md#dec-003--3d-threejs--react-three-fiber-uso-selettivo), in uso dalla Fase 2), solo dove aumenta il realismo della scena tavolo/carte. La scena è riservata a desktop/tablet con WebGL; mobile e fallback usano una composizione 2D DOM ([DEC-013](DECISIONS.md)).
+- **Stato**: Zustand per lo stato di presentazione della scena (oggetto a fuoco, origine dell'apertura) — [DEC-004](DECISIONS.md); i dati restano su Server Components/Supabase.
 - **Backend**: Supabase — Postgres, Supabase Auth, Supabase Storage, Row Level Security.
 - **Deployment**: Vercel per il frontend/edge, Supabase Cloud per il backend.
 
@@ -72,13 +72,21 @@ Nessun repository di codice esiste ancora: questa è l'architettura target, non 
 Orma/
 ├── CLAUDE.md              # istruzioni operative per Claude Code
 ├── IDEA.md                # visione di prodotto originale
-├── app/                    # Next.js App Router (bootstrap Fase 0)
+├── app/                    # Next.js App Router (auth Fase 5 + Home tavolo)
 ├── components/
-│   └── table/              # prototipo statico scena tavolo (Fase 1, non interattivo)
+│   ├── panel/              # pannello di contenuto DOM (condiviso 3D/2D)
+│   ├── table/              # scelta della resa + composizione 2D/mobile
+│   └── three/              # scena R3F: canvas, tavolo, carte, camera, materiali
+├── lib/
+│   ├── scene/              # store scena, definizione oggetti, capacità del device
+│   └── supabase/           # client browser/server/admin + proxy sessione
+├── tests/
+│   ├── unit/               # Vitest + Testing Library
+│   └── e2e/                # Playwright
 ├── public/
 ├── supabase/
 │   ├── config.toml
-│   └── migrations/          # vuota, nessuno schema ancora
+│   └── migrations/          # schema profiles (Fase 5)
 ├── docs/
 │   ├── PRODUCT.md
 │   ├── UX.md
@@ -86,7 +94,7 @@ Orma/
 │   ├── PERMISSIONS.md
 │   ├── DESIGN.md
 │   ├── VISUAL_REFERENCE.md # palette/tipografia concrete (Fase 1)
-│   └── SDD.md              # specifica tecnica (questo bootstrap)
+│   └── SDD.md              # specifica tecnica
 └── .claude/
     ├── PROJECT.md           # questo file
     ├── TODO.md
@@ -97,6 +105,10 @@ Orma/
 **Fase 0 (Foundation) completata**: Next.js 16 (TypeScript, App Router, strict mode) con ESLint + Prettier, Tailwind CSS (DEC-009), progetto Supabase creato (org "Scout", regione eu-central-1, piano free), progetto Vercel collegato al repository GitHub `pgiudici13/Orma` con preview deployment automatici. Deploy di produzione raggiungibile su https://orma-scout.vercel.app. Nessuno schema DB applicativo ancora presente (Fase 3+).
 
 **Fase 1 (Design / Visual Prototype) completata**: direzione visiva tradotta in `docs/VISUAL_REFERENCE.md` (palette da materiali reali — legno/carta/tessuto/metallo — e tipografia: Geist Sans per la UI funzionale, Newsreader come serif editoriale per titoli/contenuto carte), token materializzati in `app/globals.css`/`app/layout.tsx`. Libreria di transizioni scelta: `motion` (DEC-012). Primo prototipo statico 2D della scena tavolo in `components/table/` (Table, TableSurface, Card, Notebook, Calendar, LooseSheet, Pencil, Compass, FadeIn), non interattivo, che sostituisce il placeholder in `app/page.tsx`. Verificato in browser desktop/tablet; mobile non ottimizzato (demandato a P2-T05).
+
+**Fase 2 (Interactive Table) completata**: scena 3D React Three Fiber in `components/three/` — piano tavolo in legno, una sola luce con ombre, carte di Specialità/Competenza/Tappa che condividono un'unica geometria (`geometry.ts`) con texture procedurali distinte, taccuino, calendario, foglio e oggetti decorativi (matita, bussola) che non intercettano eventi. Interazione completa `oggetto → focus → camera → tavolo sfocato → pannello → chiusura` con `Esc`, click sul tavolo e bottone Chiudi; ogni oggetto interattivo ha un hotspot DOM raggiungibile da tastiera con ritorno del focus alla chiusura. Stato scena in Zustand (DEC-004), blur sul layer DOM (DEC-014), scena 3D solo su desktop/tablet con WebGL e composizione 2D dedicata altrove (DEC-013). Suite di test introdotta (DEC-006): 18 unit test Vitest e 4 E2E Playwright, tra cui il controllo automatico del budget di performance. Misure a riposo: 20 draw calls, 636 triangoli, 10,5 MB di texture.
+
+Limite dichiarato: le texture sono procedurali, non asset AGESCI reali — `docs/DESIGN.md` chiede realismo fotografico, raggiungibile solo con la pipeline PDF di Fase 3, che sostituirà le `map` senza toccare geometrie o interazione. I frame rate reali su GPU desktop/mobile restano da misurare (P10-T03).
 
 Nota operativa: la CLI `supabase` locale non è collegata al progetto remoto (`supabase link` richiede `supabase login` interattivo, non eseguibile in sessione headless) — le migrazioni verranno applicate tramite l'MCP Supabase (`apply_migration`) finché non si esegue il login manuale.
 
@@ -172,15 +184,23 @@ Dettaglio: [`docs/PERMISSIONS.md`](../docs/PERMISSIONS.md), SDD §14–16, [`doc
 
 ## 13. Testing
 
-Nessuna strategia di test è stata ancora implementata (non esiste codice). Direzione attesa quando si inizierà l'implementazione: type-check + lint obbligatori ad ogni change significativo, test automatici dove il framework lo consente, verifica visiva in browser per il lavoro sulla scena 3D. Dettaglio in SDD §25.
+Strategia scelta in [DEC-006](DECISIONS.md#dec-006--testing-strategy) e attiva dalla Fase 2:
+
+- `tsc --noEmit` e `eslint` obbligatori ad ogni change significativo;
+- **Vitest + Testing Library** (`npm run test`) per store, geometrie, texture, composizione 2D e pannello;
+- **Playwright** (`npm run test:e2e`) per gli end-to-end, unico ambiente che esercita davvero la scena 3D; i test autenticati richiedono `E2E_EMAIL`/`E2E_PASSWORD` e si saltano da soli senza;
+- verifica visiva in browser per ogni lavoro sulla scena.
+
+Dettaglio in SDD §25.
 
 ## 14. Performance
 
-Vincoli noti fin da ora per la scena 3D (da rispettare quando si implementa):
+Vincoli per la scena 3D, con budget quantitativo in SDD §10 e verifica automatica in E2E:
 
 - texture di dimensioni contenute e riutilizzate tra carte (stesso modello 3D, texture diverse);
-- niente geometria duplicata per ogni carta;
-- attenzione a ombre, post-processing, render loop e GPU mobile.
+- niente geometria duplicata per ogni carta — geometrie singleton in `components/three/geometry.ts`;
+- una sola luce con ombre, nessun post-processing, `frameloop="demand"` quando la scena è ferma;
+- attenzione a ombre, render loop e GPU mobile (frame rate reali da misurare in P10-T03).
 
 ## 15. Vincoli
 

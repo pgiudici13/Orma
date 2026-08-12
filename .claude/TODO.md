@@ -76,15 +76,16 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 
 ---
 
-## Phase 2 — Interactive Table (scena 3D)
+## Phase 2 — Interactive Table (scena 3D) — **completata**
 
 ### P2-T01 — Setup React Three Fiber e canvas base
 
 - **Obiettivo**: integrare R3F in una Client Component isolata, con un piano tavolo minimale e luce base.
 - **Dipendenze**: P1-T02, [DEC-003](DECISIONS.md#dec-003--3d-threejs--react-three-fiber-uso-selettivo).
-- **File/componenti**: `app/table/Scene.tsx` (Client Component), `components/three/`.
+- **File/componenti**: `components/three/TableCanvas.tsx` (Client Component, caricata con `next/dynamic` `ssr: false`), `TableTop.tsx`, `Lighting.tsx`, `materials/`.
 - **Criteri di completamento**: scena 3D renderizza senza errori SSR, 60fps su desktop di riferimento.
 - **Test necessari**: verifica visiva, check console errori, check performance base (frame time).
+- **Stato**: completato. Scena verificata via Playwright (screenshot desktop), console pulita, build di produzione senza errori SSR. Il frame rate reale non è misurabile nell'ambiente headless usato (WebGL software): resta da confermare su GPU reale in P10-T03.
 
 ### P2-T02 — Decisione state management (chiude DEC-004)
 
@@ -92,22 +93,25 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **Dipendenze**: P2-T01.
 - **Criteri di completamento**: DEC-004 aggiornata da `Open Decision` a `Accepted`.
 - **Test necessari**: nessuno specifico, verificato tramite P2-T03.
+- **Stato**: completato. Zustand, `lib/scene/store.ts`; DEC-004 `Accepted`.
 
 ### P2-T03 — Modello 3D riutilizzabile per le carte
 
 - **Obiettivo**: un solo modello geometria carta, texture intercambiabili per Specialità/Competenze/Tappe (vincolo esplicito in `CLAUDE.md`: niente geometria duplicata per carta).
 - **Dipendenze**: P2-T01.
-- **File/componenti**: `components/three/Card.tsx`, asset placeholder in `assets/processed/cards/`.
+- **File/componenti**: `components/three/Card3D.tsx`, `geometry.ts` (geometrie singleton), `materials/textures.ts` (texture procedurali memoizzate).
 - **Criteri di completamento**: più carte in scena condividono la stessa geometria; performance verificata con N carte di test.
 - **Test necessari**: check draw calls, check memoria texture.
+- **Stato**: completato. 20 draw calls, 636 triangoli, 10,5 MB di texture a riposo, dentro il budget di SDD §10 e verificato automaticamente in E2E. Nessun asset in `assets/processed/cards/`: in Fase 2 le texture sono procedurali, gli asset reali arrivano da P3-T02b.
 
 ### P2-T04 — Interazione: focus → camera → blur → contenuto → chiusura
 
 - **Obiettivo**: implementare il pattern di interazione descritto in `docs/UX.md` (oggetto → primo piano → leggero movimento camera → tavolo sfocato → contenuto → chiusura → ritorno).
 - **Dipendenze**: P2-T02, P2-T03.
-- **File/componenti**: `components/three/CardFocus.tsx`, gestione transizione camera.
+- **File/componenti**: `components/three/CameraRig.tsx` e `SceneObjects.tsx` (sollevamento oggetto, hotspot accessibili), `components/panel/ObjectPanel.tsx` (contenuto DOM).
 - **Criteri di completamento**: transizione fluida testata su almeno una carta placeholder; non deve "sembrare un cambio di pagina" (requisito esplicito UX).
 - **Test necessari**: verifica visiva, check regressioni performance.
+- **Stato**: completato. Apertura/chiusura verificate visivamente e in E2E, incluso il ritorno del focus da tastiera all'oggetto di partenza. Il contenuto del pannello è strutturale (ufficiale → progresso → note → Maestro) con stati vuoti: i dati reali arrivano in Fase 3.
 
 ### P2-T05 — Adattamento mobile della scena
 
@@ -115,6 +119,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **Dipendenze**: P2-T04.
 - **Criteri di completamento**: layout mobile distinto validato su almeno un device/simulatore reale.
 - **Test necessari**: verifica responsive, check performance GPU mobile.
+- **Stato**: completato come composizione 2D dedicata ([DEC-013](DECISIONS.md)), non come scena 3D adattata: su mobile la scena WebGL non viene nemmeno caricata. Validato a 390×844 in Chromium (screenshot + E2E); **non ancora provato su un device fisico**, e il check GPU mobile resta a P10-T03.
 
 ---
 

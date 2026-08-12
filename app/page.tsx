@@ -1,5 +1,5 @@
-import { Table } from "@/components/table/Table";
+import { TableExperience } from "@/components/table/TableExperience";
 
 export default function Home() {
-  return <Table />;
+  return <TableExperience />;
 }

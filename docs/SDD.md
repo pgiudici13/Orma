@@ -141,9 +141,26 @@ Non ogni superficie deve necessariamente vivere "sul tavolo": Reparto, ricerca M
 ## 10. 3D Architecture
 
 - **Libreria**: React Three Fiber su Three.js — [DEC-003](../.claude/DECISIONS.md#dec-003--3d-threejs--react-three-fiber-uso-selettivo).
-- **Modelli riutilizzabili**: un solo modello geometria "carta", texture diverse per ogni Specialità/Competenza/Tappa (vincolo esplicito, vedi `CLAUDE.md` root).
-- **Performance budget**: da definire quantitativamente in fase di prototipo (Fase 1–2 del piano); attenzione dichiarata a texture size, geometria duplicata, shadow map, post-processing, render loop, GPU mobile.
+- **Modelli riutilizzabili**: un solo modello geometria "carta", texture diverse per ogni Specialità/Competenza/Tappa (vincolo esplicito, vedi `CLAUDE.md` root). Le geometrie sono singleton esportate da `components/three/geometry.ts`; un test verifica che nessun altro file della scena crei geometrie proprie.
+- **Texture**: procedurali (`CanvasTexture` generata dai token materiali di `app/globals.css`), memoizzate a livello di modulo in `components/three/materials/textures.ts`. Sono placeholder di Fase 2: gli asset reali della pipeline PDF (Fase 3) sostituiranno solo le `map`.
+- **Render loop**: `frameloop="demand"`; le animazioni richiedono i frame con `invalidate()` e smettono appena il movimento è esaurito. Con `?perf=1` il loop resta continuo per misurare il frame rate.
+- **Quale resa dove**: la scena 3D è per desktop/tablet con WebGL; mobile, assenza di WebGL e `prefers-reduced-motion` usano la composizione 2D DOM — [DEC-013](../.claude/DECISIONS.md#dec-013--scena-3d-su-desktoptablet-composizione-2d-dedicata-altrove).
+- **Nessun post-processing**: blur e scurimento del tavolo aperto un oggetto vivono sul layer DOM — [DEC-014](../.claude/DECISIONS.md#dec-014--niente-post-processing-sfocatura-e-scurimento-sul-layer-dom).
 - **Camera**: movimento limitato e prevedibile (focus su oggetto), non una camera libera esplorabile stile videogioco.
+
+**Performance budget** (misurato in sviluppo dall'HUD `components/three/PerfHud.tsx`, verificato dall'E2E `tests/e2e/table.spec.ts`):
+
+| Metrica                          | Soglia          | Misura attuale (scena a riposo) |
+| -------------------------------- | --------------- | ------------------------------- |
+| Draw calls                       | ≤ 25            | 20                              |
+| Triangoli                        | ≤ 2 000         | 636                             |
+| Memoria texture stimata          | ≤ 12 MB         | 10,5 MB                         |
+| Luci che proiettano ombra        | 1 (shadow 1024) | 1                               |
+| Post-processing                  | nessuno         | nessuno                         |
+| Frame rate desktop di riferimento| 60 fps          | da confermare su GPU reale      |
+| Frame rate mobile (P10-T03)      | ≥ 30 fps        | non ancora misurato             |
+
+I frame rate non sono misurabili nell'ambiente di sviluppo headless usato finora (WebGL software SwiftShader): restano da verificare su hardware reale in P10-T03.
 
 ## 11. Asset Pipeline
 
@@ -284,10 +301,12 @@ Le tabelle `user_specialita`/`user_competenza`/`user_tappa` sono la relazione N:
 ## 25. Testing
 
 - Type-check (`tsc --noEmit`) e lint obbligatori a ogni change significativo.
+- **Vitest + Testing Library** (`npm run test`, `tests/unit/`) per unit e component test — [DEC-006](../.claude/DECISIONS.md#dec-006--testing-strategy).
+- **Playwright** (`npm run test:e2e`, `tests/e2e/`) per gli end-to-end, unico ambiente in grado di esercitare la scena 3D reale.
+- Gli E2E autenticati richiedono `E2E_EMAIL` e `E2E_PASSWORD` in ambiente e si saltano da soli quando mancano: nessuna credenziale nel repository.
 - Test unitari per logica di dominio pura (calcolo progresso, regole di permesso) quando introdotta.
 - Test RLS espliciti per ogni tabella sensibile (vedi P10-T01 nel piano).
 - Test E2E per i flussi critici (login → tavolo → apertura carta → progresso → nota) prima del go-live.
-- Framework specifico: **Open Decision** ([DEC-006](../.claude/DECISIONS.md#dec-006--testing-strategy)), proposta Vitest + Playwright.
 
 ## 26. Deployment
 
