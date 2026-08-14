@@ -2,7 +2,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 /**
- * Test RLS per l'onboarding Reparto (P5-T02, DEC-016): stesso pattern di
+ * Test RLS per l'onboarding Reparto (P5-T02, DEC-016) e per Squadriglia/ruolo
+ * Capo (Fase 6, P6-T01/T02/T03, DEC-017): stesso pattern di
  * tests/unit/rls/personalTables.rls.test.ts. Richiede un progetto Supabase
  * reale con almeno un Reparto seedato e due utenti di prova (senza
  * reparto_id già approvato, altrimenti l'insert su richiesta_reparto entra
@@ -127,5 +128,51 @@ describe.skipIf(!hasCredentials)("RLS — onboarding Reparto", () => {
       p_esito: "approvata",
     });
     expect(rpcError).not.toBeNull();
+  });
+});
+
+/**
+ * Test RLS per Squadriglia e ruolo Capo (Fase 6 — P6-T01/T02/T03, DEC-017).
+ * Copre solo il percorso di diniego di default (ruolo "eg", nessun Reparto
+ * approvato): l'isolamento cross-Reparto per un Capo reale non è
+ * automatizzabile qui, perché `ruolo`/`reparto_id` sono scrivibili solo da
+ * SQL diretto o da `decidi_richiesta_reparto()` (già lei stessa gated su
+ * is_admin/is_capo_reparto — nessun modo self-service o via service-role
+ * PostgREST di "diventare" Capo senza bypassare il trigger
+ * `profiles_block_self_consent_update`, per design). Stesso limite già
+ * presente per le policy `is_admin` (DEC-015), mai coperte da un test
+ * automatizzato per lo stesso motivo — vedi `.claude/CORRECTIONS.md`.
+ */
+describe.skipIf(!hasCredentials)("RLS — Squadriglia e ruolo Capo", () => {
+  let clientA: SupabaseClient;
+  let repartoId: string;
+
+  beforeAll(async () => {
+    clientA = await signedInClient(emailA!, passwordA!);
+
+    const { data: reparto, error: repartoError } = await clientA
+      .from("reparto")
+      .select("id")
+      .limit(1)
+      .single();
+    if (repartoError) throw repartoError;
+    repartoId = reparto.id;
+  });
+
+  it("is_capo_reparto: un profilo con ruolo 'eg' di default non è Capo", async () => {
+    const { data, error } = await clientA.rpc("is_capo_reparto", {
+      target_reparto_id: repartoId,
+    });
+    expect(error).toBeNull();
+    expect(data).toBe(false);
+  });
+
+  it("squadriglia: un utente senza ruolo Capo non può creare una Squadriglia", async () => {
+    const { data, error } = await clientA
+      .from("squadriglia")
+      .insert({ reparto_id: repartoId, nome: "Squadriglia di test RLS" })
+      .select();
+    expect(error).not.toBeNull();
+    expect(data).toBeNull();
   });
 });

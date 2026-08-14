@@ -95,7 +95,7 @@ Architettura target: Next.js su Vercel per il frontend, React Three Fiber per la
 | Maestro (esterno)       | Persona senza account ORMA                         | Non è un `User`, è un record dati associato all'utente che lo ha aggiunto                         |
 | Admin di Reparto        | Gestisce dati amministrativi del Reparto           | Scoped al singolo Reparto — **non** gestisce il catalogo ufficiale (vedi nota sotto)              |
 
-Il modello di ruolo dettagliato (permessi granulari per Capo/Admin di Reparto) è un **Open Decision** — vedi Open Question §29.
+Il modello di ruolo dettagliato (permessi granulari per Capo/Admin di Reparto) era un **Open Decision** (Open Question §29) — chiusa in Fase 6 con [DEC-017](../.claude/DECISIONS.md#dec-017--ruolo-capo-scoped-al-reparto-fusione-con-admin-di-reparto): un ruolo unico "Capo", scoped al proprio Reparto, che fonde le due righe di questa tabella. Nessun livello di permesso più granulare per ora.
 
 **Nota**: il contenuto ufficiale (Specialità/Competenze/Tappe) non ha un ruolo applicativo dedicato. Per decisione esplicita ([DEC-008](../.claude/DECISIONS.md#dec-008--gestione-del-contenuto-ufficiale-specialit%C3%A0competenzetappe)), il catalogo è popolato e mantenuto dal proprietario del progetto tramite seed/migrazioni, non tramite una UI o un ruolo "Content Admin" in-app.
 
@@ -237,7 +237,7 @@ Lo schema SQL dettagliato (colonne, vincoli, indici) è definito durante l'imple
 
 - Autorizzazione sempre verificata server-side/database-side, mai solo in UI (vincolo esplicito e non negoziabile).
 - Modello a due livelli: proprietà individuale (dati personali) + appartenenza a Reparto (dati condivisi con permessi).
-- Ruoli (E/G, Capo, Admin di Reparto) mappano a policy RLS distinte; il dettaglio dei permessi per ruolo è da definire in Fase 6 del piano.
+- Ruoli: E/G (default) e Capo (`profiles.ruolo`, scoped al Reparto — fonde Capo e Admin di Reparto, [DEC-017](../.claude/DECISIONS.md#dec-017--ruolo-capo-scoped-al-reparto-fusione-con-admin-di-reparto)) mappano a policy RLS distinte, chiuso in Fase 6 del piano.
 
 ## 16. RLS Strategy
 
@@ -336,7 +336,7 @@ Vedi anche le Open Decision in [`.claude/DECISIONS.md`](../.claude/DECISIONS.md)
 - Strumento di estrazione preciso della pipeline PDF → texture, da scegliere ispezionando i 3 PDF ora disponibili in `files/` — DEC-005.
 - Framework di test — DEC-006.
 - Metodo di autenticazione esatto (password, magic link, OAuth) e policy su utenti minorenni.
-- Modello di ruolo dettagliato per Capo/Admin di Reparto (permessi granulari) — la governance del contenuto ufficiale è invece chiusa, vedi [DEC-008](../.claude/DECISIONS.md#dec-008--gestione-del-contenuto-ufficiale-specialit%C3%A0competenzetappe).
+- ~~Modello di ruolo dettagliato per Capo/Admin di Reparto (permessi granulari)~~ — chiusa in Fase 6, vedi [DEC-017](../.claude/DECISIONS.md#dec-017--ruolo-capo-scoped-al-reparto-fusione-con-admin-di-reparto). La governance del contenuto ufficiale è invece chiusa da prima, vedi [DEC-008](../.claude/DECISIONS.md#dec-008--gestione-del-contenuto-ufficiale-specialit%C3%A0competenzetappe).
 - Osservabilità/error tracking in produzione.
 
 ## 30. Architecture Decisions

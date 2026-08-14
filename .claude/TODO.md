@@ -282,7 +282,13 @@ P5-T02 non ha più richiesto di anticipare lo schema Reparto/Squadriglia complet
 
 ---
 
-## Phase 6 — Supabase (schema Reparto/organizzazione)
+## Phase 6 — Supabase (schema Reparto/organizzazione) — **completata, deploy incluso**
+
+Tutti e tre i task sono stati chiusi insieme: `squadriglia` (P6-T01), le relative policy scoped-per-Reparto (P6-T02) e il modello di ruolo "Capo" (P6-T03, [DEC-017](DECISIONS.md#dec-017--ruolo-capo-scoped-al-reparto-fusione-con-admin-di-reparto)) sono strettamente accoppiati: il ruolo Capo è ciò che rende utile sia le policy di scrittura su `squadriglia` sia l'estensione dell'onboarding Reparto (chiude [DEC-016](DECISIONS.md#dec-016--approvazione-reparto-riuso-temporaneo-di-is_admin)).
+
+**Deploy** (via MCP Supabase, progetto `ouffyxrhxhzqcduvgpon`): 4 migrazioni applicate — `reparto_ruolo` (`profiles.ruolo`, `is_capo_reparto()`), `squadriglia` (tabella + RLS + `profiles.squadriglia_id` + estensione trigger), `capo_richiesta_reparto` (policy Capo su `richiesta_reparto`/`profiles`, `decidi_richiesta_reparto()` aggiornata), `merge_capo_select_policies` (fix `multiple_permissive_policies` post-`get_advisors`, stesso pattern di `20260812120500_merge_admin_select_policies.sql`). `get_advisors` post-deploy: nessun nuovo advisor rispetto alla baseline pre-esistente.
+
+**Limite dichiarato**: nessun test RLS automatizzato copre l'isolamento positivo cross-Reparto per un Capo reale — `ruolo`/`reparto_id`/`squadriglia_id` sono scrivibili solo da SQL diretto (project owner) o da `decidi_richiesta_reparto()` (essa stessa gated su `is_admin`/`is_capo_reparto`, circolare per un bootstrap in test), stesso limite già presente per `is_admin` (DEC-015). Vedi `.claude/CORRECTIONS.md`. `tests/unit/rls/reparto.rls.test.ts` copre solo il percorso di diniego (ruolo `eg` di default non è mai Capo). Verificato invece via introspezione diretta (`pg_policies`/`pg_proc` su MCP `execute_sql`): le policy e funzioni applicate combaciano esattamente col design.
 
 ### P6-T01 — Schema `reparto`, `squadriglia`
 
@@ -290,7 +296,7 @@ P5-T02 non ha più richiesto di anticipare lo schema Reparto/Squadriglia complet
 - **Dipendenze**: P0-T04.
 - **Criteri di completamento**: relazioni Reparto↔Squadriglia↔Profile corrette.
 - **Test necessari**: test di integrità referenziale.
-- **Nota**: la tabella `reparto` base (id, nome) esiste già da P5-T02 (`supabase/migrations/20260812130000_reparto_onboarding.sql`), insieme a `profiles.reparto_id`. Questo task resta necessario solo per `squadriglia` e per eventuali metadati aggiuntivi su `reparto` non previsti in Fase 5.
+- **Stato**: completato. `squadriglia` (id, reparto_id FK→reparto, nome, created_at, unique(reparto_id, nome), indice su reparto_id), `profiles.squadriglia_id` (FK→squadriglia, indicizzato). Scrittura self-service bloccata dalla stessa estensione del trigger `profiles_block_self_consent_update` usata per `reparto_id` (P5-T02). **Fuori scope qui, deliberatamente**: nessuna funzione di assegnazione Squadriglia né UI — rimandate a P7-T02 insieme alla vista "Squadriglie", coerente con "Squadriglia resta fuori scope" già dichiarato in P5-T02.
 
 ### P6-T02 — RLS multi-tenant per Reparto
 
@@ -298,6 +304,7 @@ P5-T02 non ha più richiesto di anticipare lo schema Reparto/Squadriglia complet
 - **Dipendenze**: P6-T01.
 - **Criteri di completamento**: test di isolamento tra due Reparti di prova superato.
 - **Test necessari**: test RLS cross-reparto (utente Reparto A non legge dati Reparto B).
+- **Stato**: completato per `squadriglia` (SELECT scoped a `profiles.reparto_id = squadriglia.reparto_id` o `is_admin()`, a differenza di `reparto` che resta leggibile da chiunque per l'onboarding). Isolamento cross-Reparto verificato via introspezione diretta delle policy applicate (MCP `execute_sql` su `pg_policies`), non con un test automatizzato positivo (vedi limite dichiarato sopra e `.claude/CORRECTIONS.md`).
 
 ### P6-T03 — Ruoli (E/G, Capo, admin di Reparto)
 
@@ -305,6 +312,7 @@ P5-T02 non ha più richiesto di anticipare lo schema Reparto/Squadriglia complet
 - **Dipendenze**: P6-T01.
 - **Criteri di completamento**: ruolo persistito e verificato in almeno una policy RLS reale.
 - **Test necessari**: test che un E/G non possa eseguire azioni riservate ai Capi/admin.
+- **Stato**: completato con [DEC-017](DECISIONS.md#dec-017--ruolo-capo-scoped-al-reparto-fusione-con-admin-di-reparto) (fonde "Capo" e "Admin di Reparto" in un ruolo unico scoped al Reparto, chiudendo l'Open Decision di `docs/SDD.md` §6/§29). `profiles.ruolo` (`'eg'|'capo'`, default `'eg'`), `is_capo_reparto(target_reparto_id)`. Verificato in policy RLS reali: `squadriglia` (insert/update/delete), `richiesta_reparto`/`profiles` (select per il Capo), `decidi_richiesta_reparto()` (chiude DEC-016). `app/admin/richieste-reparto/page.tsx` aggiornata per accettare anche `ruolo = 'capo'`, non solo `is_admin`. Nessuna UI per assegnare il ruolo: attivato manualmente via SQL, stesso pattern non derogabile di `is_admin` (DEC-015).
 
 ---
 

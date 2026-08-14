@@ -510,7 +510,7 @@ Nessuna: l'accesso via dashboard Supabase esiste già, ma non copre il caso "ved
 
 ### Status
 
-Accepted (temporanea — da sostituire in P6-T03)
+Superseded by [DEC-017](#dec-017--ruolo-capo-scoped-al-reparto-fusione-con-admin-di-reparto) (P6-T03 ha sostituito il riuso di `is_admin` con `is_capo_reparto()`, come previsto qui sotto)
 
 ### Context
 
@@ -532,3 +532,38 @@ Anticipare il modello di ruolo Capo/Admin-di-Reparto già in Fase 5: scartato, f
 
 - Quando P6-T03 introdurrà il modello di ruolo per-Reparto, `decidi_richiesta_reparto()` va aggiornata per verificare quel ruolo invece di (o in aggiunta a) `is_admin()` — questa decisione va rivista in quel momento, non semplicemente estesa.
 - Squadriglia resta interamente fuori scope: solo la tabella `reparto` (minima: `id`, `nome`) è stata creata in P5-T02.
+
+---
+
+## DEC-017 — Ruolo Capo scoped al Reparto, fusione con "Admin di Reparto"
+
+### Status
+
+Accepted
+
+### Context
+
+`docs/SDD.md` §6/§29 elencava "Capo" e "Admin di Reparto" come righe separate nella tabella dei ruoli, con i permessi di "Capo" segnalati esplicitamente come **Open Decision**. P6-T03 (Fase 6) richiedeva di chiudere questo punto per sostituire il riuso temporaneo di `is_admin` in `decidi_richiesta_reparto()` (DEC-016) con un controllo scoped-per-Reparto, e per dare un senso concreto alla nuova tabella `squadriglia` (P6-T01).
+
+### Decision
+
+- Un solo ruolo scoped al Reparto, `profiles.ruolo` (`'eg' | 'capo'`, default `'eg'`), che fonde "Capo" e "Admin di Reparto" della tabella SDD: chi è Capo ha tutti i permessi amministrativi sul proprio Reparto (approvare/rifiutare richieste di adesione, gestire le Squadriglie del proprio Reparto), nessun livello di permesso più granulare per ora.
+- Funzione `is_capo_reparto(target_reparto_id)` (stesso pattern di `is_admin()`, DEC-015): vero se il profilo autenticato ha `ruolo = 'capo'` e `reparto_id = target_reparto_id`.
+- Nessuna UI per assegnare `ruolo = 'capo'`: attivato manualmente via SQL dal proprietario del progetto, stesso pattern non derogabile di `is_admin` (DEC-015).
+- L'assegnazione di un membro a una Squadriglia (`profiles.squadriglia_id`) non è mai self-service: solo il Capo del Reparto o l'admin globale possono scriverla (stesso principio di `reparto_id`, bloccato allo stesso trigger `profiles_block_self_consent_update`). Il meccanismo applicativo di assegnazione (funzione + UI) è rimandato a P7-T02: qui solo schema/RLS.
+- `decidi_richiesta_reparto()` accetta `is_admin()` **o** `is_capo_reparto(reparto della richiesta)` — chiude DEC-016.
+
+### Why
+
+Decisione utente esplicita in fase di pianificazione di Fase 6: alla scala del progetto (community piccola e nota, stesso ragionamento di DEC-010/DEC-016) un ruolo granulare separato per "Admin di Reparto" non ha un caso d'uso concreto oggi. Un ruolo unico riduce la superficie di permessi da mantenere e resta coerente con l'invariante generale di ORMA (autorizzazione sempre verificata via RLS, mai solo lato client).
+
+### Alternatives
+
+- **Ruoli distinti "Capo" e "Admin di Reparto"** con permessi separati (proposto come opzione in fase di pianificazione, non scelto): richiederebbe progettare ora una granularità di permessi che nessuna funzionalità concreta richiede ancora — prematuro.
+
+### Consequences
+
+- `profiles.ruolo` aggiunta con `20260814090000_reparto_ruolo.sql` (o equivalente, vedi timestamp reale in `supabase/migrations/`); `is_capo_reparto()` usata dalle policy di `squadriglia`, `richiesta_reparto`, `profiles` (vedi `20260814090500_squadriglia.sql`, `20260814091000_capo_richiesta_reparto.sql`).
+- `app/admin/richieste-reparto/page.tsx` accessibile anche a `ruolo = 'capo'`, non solo a `is_admin`.
+- Se in futuro emergesse un bisogno concreto di permessi più granulari (es. un Capo che gestisce solo le Squadriglie ma non approva richieste), va riaperta questa decisione, non semplicemente estesa con flag ad-hoc.
+- Nessun test RLS automatizzato copre l'isolamento positivo cross-Reparto per un Capo reale (stesso limite già presente per `is_admin`, vedi `.claude/CORRECTIONS.md`): `ruolo`/`reparto_id`/`squadriglia_id` sono scrivibili solo da SQL diretto o da `decidi_richiesta_reparto()`, non self-service in un test.

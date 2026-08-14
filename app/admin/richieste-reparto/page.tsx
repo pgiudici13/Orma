@@ -20,10 +20,10 @@ export default async function RichiesteRepartoPage() {
 
   const { data: ownProfile } = await supabase
     .from("profiles")
-    .select("is_admin")
+    .select("is_admin, ruolo")
     .eq("id", user.id)
     .single();
-  if (!ownProfile?.is_admin) redirect("/");
+  if (!ownProfile?.is_admin && ownProfile?.ruolo !== "capo") redirect("/");
 
   const { data: richieste } = (await supabase
     .from("richiesta_reparto")
