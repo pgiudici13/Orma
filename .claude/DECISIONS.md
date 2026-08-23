@@ -567,3 +567,43 @@ Decisione utente esplicita in fase di pianificazione di Fase 6: alla scala del p
 - `app/admin/richieste-reparto/page.tsx` accessibile anche a `ruolo = 'capo'`, non solo a `is_admin`.
 - Se in futuro emergesse un bisogno concreto di permessi più granulari (es. un Capo che gestisce solo le Squadriglie ma non approva richieste), va riaperta questa decisione, non semplicemente estesa con flag ad-hoc.
 - Nessun test RLS automatizzato copre l'isolamento positivo cross-Reparto per un Capo reale (stesso limite già presente per `is_admin`, vedi `.claude/CORRECTIONS.md`): `ruolo`/`reparto_id`/`squadriglia_id` sono scrivibili solo da SQL diretto o da `decidi_richiesta_reparto()`, non self-service in un test.
+
+---
+
+## DEC-018 — Funzionalità di Reparto: visibilità membri, assegnazione Squadriglie e Calendario (Fase 7)
+
+### Status
+
+Accepted
+
+### Context
+
+La Fase 7 implementa le funzionalità di Reparto (P7-T01, P7-T02, P7-T03): la consultazione dei membri del Reparto nel rispetto della privacy scout, la gestione e assegnazione delle Squadriglie da parte dei Capi, e il Calendario di Reparto (eventi, uscite, campi) integrato sia nella metafora fisica del tavolo sia nella pagina Reparto.
+
+### Decision
+
+1. **Visibilità membri e percorso scout (P7-T01)**:
+   - Estesa la policy `profiles_select_own` per consentire ai membri dello stesso Reparto (con `has_active_consent()` e `stato_consenso_genitoriale <> 'in_attesa'`) di leggere i profili dei compagni del proprio Reparto.
+   - I dati strettamente personali (data di nascita, email/token del genitore) non vengono esposti nella vista membri di Reparto.
+   - Estese le policy di `user_specialita`, `user_competenza` e `user_tappa` per consentire la lettura delle Specialità/Competenze completate e delle Tappe tra membri dello stesso Reparto.
+   - `nota` e `maestro_esterno` restano confidenziali e di proprietà esclusiva dell'utente (`auth.uid() = profile_id` o admin globale).
+
+2. **Assegnazione Squadriglia (P7-T02)**:
+   - Funzione PostgreSQL `assegna_squadriglia(p_profile_id uuid, p_squadriglia_id uuid)` (`SECURITY DEFINER`): verifica che il chiamante sia `is_admin()` o `is_capo_reparto(reparto_id)`, verifica che la Squadriglia (se indicata) appartenga allo stesso Reparto del profilo, e aggiorna `profiles.squadriglia_id`.
+   - UI in `/reparto` per la creazione, rinomina ed eliminazione di Squadriglie, e menu rapido per l'assegnazione dei membri.
+
+3. **Calendario di Reparto (P7-T03)**:
+   - Tabella `public.evento` (`id`, `reparto_id`, `titolo`, `descrizione`, `tipo`, `data_inizio`, `data_fine`, `luogo`, `created_at`).
+   - RLS multi-tenant: lettura per i membri del Reparto con consenso attivo, scrittura riservata ai Capi del Reparto (`is_capo_reparto(reparto_id)`) o all'admin globale (`is_admin()`).
+   - Integrazione tavolo scout: quando l'utente interagisce con l'oggetto `calendario` sul tavolo, `ObjectPanel` mostra i prossimi eventi del Reparto dell'utente con la metafora grafica analogica.
+   - Pagina `/reparto` con sezione Calendario completa e form per i Capi.
+
+### Why
+
+Rispetta i requisiti di `docs/PERMISSIONS.md` (privacy by default, isolamento multi-tenant a livello RLS) e la metafora visiva scout di `docs/DESIGN.md` e `docs/UX.md`.
+
+### Consequences
+
+- Pagina `/reparto` con tab Membri, Squadriglie e Calendario.
+- Oggetto `calendario` sul tavolo scout popolato dinamicamente con i dati reali del Reparto dell'utente.
+

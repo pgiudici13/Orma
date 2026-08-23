@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 import {
   addMaestroEsterno,
@@ -14,6 +15,7 @@ import {
   findSceneObject,
   type CardData,
   type ContentKind,
+  type EventoData,
   type SceneObject,
 } from "@/lib/scene/objects";
 import { useSceneObjects } from "@/lib/scene/SceneDataContext";
@@ -159,52 +161,162 @@ function PanelSheet({
         </button>
       </header>
 
-      <PanelSection title="Contenuto ufficiale">
-        {object.card ? (
-          <p className="font-serif text-sm leading-relaxed">
-            {object.card.title}
-            {/* Nessun testo descrittivo ufficiale nel modello dati attuale
-                (solo nome e immagine, P3-T01): nessun testo va inventato. */}
-          </p>
-        ) : (
-          <p className="font-serif text-sm leading-relaxed italic">
-            Il testo ufficiale di questa carta non è ancora stato caricato.
-          </p>
-        )}
-      </PanelSection>
+      {object.kind === "calendario" ? (
+        <CalendarioPanel events={object.events} />
+      ) : (
+        <>
+          <PanelSection title="Contenuto ufficiale">
+            {object.card ? (
+              <p className="font-serif text-sm leading-relaxed">
+                {object.card.title}
+                {/* Nessun testo descrittivo ufficiale nel modello dati attuale
+                    (solo nome e immagine, P3-T01): nessun testo va inventato. */}
+              </p>
+            ) : (
+              <p className="font-serif text-sm leading-relaxed italic">
+                Il testo ufficiale di questa carta non è ancora stato caricato.
+              </p>
+            )}
+          </PanelSection>
 
-      <PanelSection title="Progresso">
-        {object.card ? (
-          <ProgressoSection kind={object.card.kind} card={object.card} />
-        ) : (
-          <p className="font-sans text-sm leading-relaxed">
-            Nessun obiettivo registrato.
-          </p>
-        )}
-      </PanelSection>
+          <PanelSection title="Progresso">
+            {object.card ? (
+              <ProgressoSection kind={object.card.kind} card={object.card} />
+            ) : (
+              <p className="font-sans text-sm leading-relaxed">
+                Nessun obiettivo registrato.
+              </p>
+            )}
+          </PanelSection>
 
-      <PanelSection title="Note personali">
-        {object.card ? (
-          <NoteSection kind={object.card.kind} card={object.card} />
-        ) : (
-          <p className="font-sans text-sm leading-relaxed">
-            Non hai ancora scritto note su questa carta.
-          </p>
-        )}
-      </PanelSection>
+          <PanelSection title="Note personali">
+            {object.card ? (
+              <NoteSection kind={object.card.kind} card={object.card} />
+            ) : (
+              <p className="font-sans text-sm leading-relaxed">
+                Non hai ancora scritto note su questa carta.
+              </p>
+            )}
+          </PanelSection>
 
-      {object.kind !== "tappa" ? (
-        <PanelSection title="Maestro">
-          {object.card && object.card.kind !== "tappa" ? (
-            <MaestroSection kind={object.card.kind} card={object.card} />
-          ) : (
-            <p className="font-sans text-sm leading-relaxed">
-              Nessun Maestro associato.
-            </p>
-          )}
-        </PanelSection>
-      ) : null}
+          {object.kind !== "tappa" ? (
+            <PanelSection title="Maestro">
+              {object.card && object.card.kind !== "tappa" ? (
+                <MaestroSection kind={object.card.kind} card={object.card} />
+              ) : (
+                <p className="font-sans text-sm leading-relaxed">
+                  Nessun Maestro associato.
+                </p>
+              )}
+            </PanelSection>
+          ) : null}
+        </>
+      )}
     </section>
+  );
+}
+
+function CalendarioPanel({
+  events = [],
+}: {
+  events?: readonly EventoData[];
+}) {
+  return (
+    <div className="mt-5 flex flex-col gap-4 font-sans text-sm leading-relaxed">
+      <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "color-mix(in srgb, var(--ink) 14%, transparent)" }}>
+        <p
+          className="text-xs uppercase tracking-wider"
+          style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+        >
+          Prossimi eventi di Reparto
+        </p>
+        <Link
+          href="/reparto"
+          className="text-[11px] tracking-wide underline underline-offset-2"
+          style={{ color: "var(--accent)" }}
+        >
+          Apri Reparto →
+        </Link>
+      </div>
+
+      {events.length === 0 ? (
+        <p
+          className="italic py-3"
+          style={{ color: "color-mix(in srgb, var(--ink) 65%, transparent)" }}
+        >
+          Nessun evento in programma per il tuo Reparto.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {events.map((ev) => (
+            <li
+              key={ev.id}
+              className="flex flex-col gap-1 rounded-[2px] p-2.5"
+              style={{
+                backgroundColor:
+                  "color-mix(in srgb, var(--paper-aged) 50%, transparent)",
+                border:
+                  "1px solid color-mix(in srgb, var(--wood-dark) 18%, transparent)",
+              }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span
+                  className="font-serif text-base font-semibold leading-snug"
+                  style={{ color: "var(--ink)" }}
+                >
+                  {ev.titolo}
+                </span>
+                <span
+                  className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-sans font-medium uppercase tracking-wider"
+                  style={{
+                    backgroundColor:
+                      ev.tipo === "uscita"
+                        ? "color-mix(in srgb, #2e6b35 18%, transparent)"
+                        : ev.tipo === "campo"
+                          ? "color-mix(in srgb, #b25822 18%, transparent)"
+                          : "color-mix(in srgb, var(--ink) 12%, transparent)",
+                    color:
+                      ev.tipo === "uscita"
+                        ? "#1b4d21"
+                        : ev.tipo === "campo"
+                          ? "#7d3910"
+                          : "var(--ink)",
+                  }}
+                >
+                  {ev.tipo}
+                </span>
+              </div>
+
+              <div
+                className="text-xs"
+                style={{
+                  color: "color-mix(in srgb, var(--ink) 75%, transparent)",
+                }}
+              >
+                <span>
+                  {ev.dataInizio}
+                  {ev.dataFine && ev.dataFine !== ev.dataInizio
+                    ? ` → ${ev.dataFine}`
+                    : ""}
+                </span>
+                {ev.luogo ? <span className="ml-2 font-medium">📍 {ev.luogo}</span> : null}
+              </div>
+
+              {ev.descrizione ? (
+                <p
+                  className="mt-1 text-xs leading-relaxed"
+                  style={{
+                    color: "color-mix(in srgb, var(--ink) 85%, transparent)",
+                  }}
+                >
+                  {ev.descrizione}
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
