@@ -316,7 +316,9 @@ Tutti e tre i task sono stati chiusi insieme: `squadriglia` (P6-T01), le relativ
 
 ---
 
-## Phase 7 — Reparto (funzionalità)
+## Phase 7 — Reparto (funzionalità) — **completata**
+
+Implementati tutti i 3 task con migrazione `20260823100000_reparto_funzionalita.sql` ([DEC-018](DECISIONS.md#dec-018--funzionalità-di-reparto-visibilità-membri-assegnazione-squadriglie-e-calendario-fase-7)), pagina dedicata `/reparto` con tab Membri, Squadriglie e Calendario, Server Actions e integrazione dinamica dell'oggetto `calendario` sul tavolo scout.
 
 ### P7-T01 — Elenco membri del Reparto (profili limitati)
 
@@ -324,6 +326,7 @@ Tutti e tre i task sono stati chiusi insieme: `squadriglia` (P6-T01), le relativ
 - **Dipendenze**: P6-T02, P6-T03.
 - **Criteri di completamento**: nessun dato privato esposto di default.
 - **Test necessari**: test che verifica campi esclusi per utenti non autorizzati.
+- **Stato**: completato. Policy RLS estese per `profiles`, `user_specialita`, `user_competenza` e `user_tappa` per i membri dello stesso Reparto; dati sensibili (data di nascita, email del genitore, note personali) esclusi dalla vista; filtri per nome e Squadriglia in `app/reparto/MembriSection.tsx`; test unitari in `tests/unit/repartoComponents.test.tsx`.
 
 ### P7-T02 — Squadriglie (vista e appartenenza)
 
@@ -331,14 +334,16 @@ Tutti e tre i task sono stati chiusi insieme: `squadriglia` (P6-T01), le relativ
 - **Dipendenze**: P7-T01.
 - **Criteri di completamento**: coerente con schema P6-T01.
 - **Test necessari**: verifica dati.
+- **Stato**: completato. Funzione PostgreSQL `assegna_squadriglia` (SECURITY DEFINER, riservata ai Capi/Admin), UI di consultazione Squadriglie e membri non assegnati in `app/reparto/SquadriglieSection.tsx`, controlli di creazione/rinomina/eliminazione Squadriglie e assegnazione membri con Server Actions (`app/reparto/actions.ts`).
 
 ### P7-T03 — Calendario Reparto
 
 - **Obiettivo**: vista calendario (metafora fisica — agenda/foglio, non stile Google Calendar) per uscite/campi/eventi.
 - **Dipendenze**: P6-T02.
-- **File/componenti**: schema `attivita`/`evento`, componente calendario coerente con `docs/DESIGN.md`.
+- **File/componenti**: schema `evento`, componente calendario coerente con `docs/DESIGN.md`.
 - **Criteri di completamento**: eventi filtrati per Reparto/permessi dell'utente.
 - **Test necessari**: test RLS su visibilità eventi.
+- **Stato**: completato. Tabella `evento` con RLS multi-tenant (lettura per membri con consenso, scrittura per Capi/Admin); UI agenda scout in `app/reparto/CalendarioSection.tsx` con creazione/modifica/eliminazione; integrazione dinamica con l'oggetto `calendario` sul tavolo scout tramite `ObjectPanel` (`components/panel/ObjectPanel.tsx`) e query `getTableEvents` (`lib/queries/cards.ts`).
 
 ---
 

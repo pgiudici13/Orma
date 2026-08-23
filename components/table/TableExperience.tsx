@@ -5,7 +5,11 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { ObjectPanel } from "@/components/panel/ObjectPanel";
-import { type CardData, mergeSceneObjects } from "@/lib/scene/objects";
+import {
+  type CardData,
+  type EventoData,
+  mergeSceneObjects,
+} from "@/lib/scene/objects";
 import { SceneDataProvider } from "@/lib/scene/SceneDataContext";
 import { useSceneCapabilities } from "@/lib/scene/useSceneCapabilities";
 import { useSceneStore } from "@/lib/scene/store";
@@ -38,15 +42,18 @@ const SHOW_PERF = process.env.NODE_ENV !== "production";
 
 export function TableExperience({
   cards = [],
+  events = [],
 }: {
   /** Specialità/Competenze/Tappe con progresso attivo (P3-T04), da Supabase. */
   cards?: CardData[];
+  /** Eventi del calendario di Reparto (P7-T03). */
+  events?: EventoData[];
 }) {
   const { mode } = useSceneCapabilities();
   const focusedId = useSceneStore((state) => state.focusedId);
   const clear = useSceneStore((state) => state.clear);
   const reducedMotion = useReducedMotion();
-  const objects = useMemo(() => mergeSceneObjects(cards), [cards]);
+  const objects = useMemo(() => mergeSceneObjects(cards, events), [cards, events]);
 
   // Ogni cambio di modalità riparte dal tavolo: un oggetto aperto nella scena
   // 3D non deve restare a fuoco in una composizione che non lo mostra così.
@@ -91,13 +98,26 @@ export function TableExperience({
         <ObjectPanel />
 
         {!focused ? (
-          <Link
-            href="/impostazioni"
-            className="absolute top-3 right-3 z-10 font-sans text-[11px] tracking-wide underline underline-offset-2"
-            style={{ color: "color-mix(in srgb, var(--ink) 55%, transparent)" }}
-          >
-            Impostazioni
-          </Link>
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-4">
+            <Link
+              href="/reparto"
+              className="font-sans text-[11px] tracking-wide underline underline-offset-2"
+              style={{
+                color: "color-mix(in srgb, var(--ink) 75%, transparent)",
+              }}
+            >
+              Reparto
+            </Link>
+            <Link
+              href="/impostazioni"
+              className="font-sans text-[11px] tracking-wide underline underline-offset-2"
+              style={{
+                color: "color-mix(in srgb, var(--ink) 55%, transparent)",
+              }}
+            >
+              Impostazioni
+            </Link>
+          </div>
         ) : null}
 
         {SHOW_PERF && mode === "scene3d" ? <PerfOverlay /> : null}

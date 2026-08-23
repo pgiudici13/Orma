@@ -175,4 +175,26 @@ describe.skipIf(!hasCredentials)("RLS — Squadriglia e ruolo Capo", () => {
     expect(error).not.toBeNull();
     expect(data).toBeNull();
   });
+
+  it("assegna_squadriglia: un utente senza ruolo Capo/Admin non può assegnare squadriglie", async () => {
+    const { error } = await clientA.rpc("assegna_squadriglia", {
+      p_profile_id: "00000000-0000-0000-0000-000000000000",
+      p_squadriglia_id: null,
+    });
+    expect(error).not.toBeNull();
+  });
+
+  it("evento: un utente senza ruolo Capo non può inserire eventi di Reparto", async () => {
+    const { data, error } = await clientA
+      .from("evento")
+      .insert({
+        reparto_id: repartoId,
+        titolo: "Uscita test non autorizzata",
+        tipo: "uscita",
+        data_inizio: "2026-10-10",
+      })
+      .select();
+    expect(error).not.toBeNull();
+    expect(data).toBeNull();
+  });
 });

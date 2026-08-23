@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import type { CardData, ContentKind, NotaData } from "@/lib/scene/objects";
+import type {
+  CardData,
+  ContentKind,
+  EventoData,
+  NotaData,
+} from "@/lib/scene/objects";
 import { distintivoPublicUrl } from "@/lib/supabase/storage";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -181,4 +186,54 @@ export async function getTableCards(): Promise<CardData[]> {
   }
 
   return cards;
+}
+
+/**
+ * Eventi del calendario di Reparto dell'utente autenticato (P7-T03).
+ */
+export async function getTableEvents(): Promise<EventoData[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: profile } = (await supabase
+    .from("profiles")
+    .select("reparto_id")
+    .eq("id", user.id)
+    .single()) as unknown as { data: { reparto_id: string | null } | null };
+
+  if (!profile?.reparto_id) return [];
+
+  const { data: eventi } = (await supabase
+    .from("evento")
+    .select("id, titolo, descrizione, tipo, data_inizio, data_fine, luogo")
+    .eq("reparto_id", profile.reparto_id)
+    .order("data_inizio", { ascending: true })
+    .limit(10)) as unknown as {
+    data:
+      | {
+          id: string;
+          titolo: string;
+          descrizione: string | null;
+          tipo: "uscita" | "campo" | "riunione" | "altro";
+          data_inizio: string;
+          data_fine: string | null;
+          luogo: string | null;
+        }[]
+      | null;
+  };
+
+  if (!eventi) return [];
+
+  return eventi.map((e) => ({
+    id: e.id,
+    titolo: e.titolo,
+    descrizione: e.descrizione ?? undefined,
+    tipo: e.tipo,
+    dataInizio: e.data_inizio,
+    dataFine: e.data_fine ?? undefined,
+    luogo: e.luogo ?? undefined,
+  }));
 }

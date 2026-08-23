@@ -33,7 +33,11 @@ export const metadata: Metadata = {
   description: "Il tuo tavolo scout personale.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"

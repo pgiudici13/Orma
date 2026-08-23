@@ -26,6 +26,16 @@ export type SceneObjectKind =
  */
 export type SceneObjectId = string;
 
+export type EventoData = {
+  id: string;
+  titolo: string;
+  descrizione?: string;
+  tipo: "uscita" | "campo" | "riunione" | "altro";
+  dataInizio: string;
+  dataFine?: string;
+  luogo?: string;
+};
+
 export type SceneObject = {
   id: SceneObjectId;
   kind: SceneObjectKind;
@@ -50,6 +60,8 @@ export type SceneObject = {
    * originali quando `card` non c'è.
    */
   card?: CardData;
+  /** Eventi del calendario di Reparto (P7-T03). */
+  events?: readonly EventoData[];
 };
 
 export const KIND_LABEL: Record<SceneObjectKind, string> = {
@@ -230,9 +242,16 @@ export function buildCardSceneObjects(
   });
 }
 
-/** Lista completa da mostrare sul tavolo: carte reali + oggetti decorativi. */
+/** Lista completa da mostrare sul tavolo: carte reali + oggetti decorativi/calendario. */
 export function mergeSceneObjects(
   cards: readonly CardData[],
+  events?: readonly EventoData[],
 ): readonly SceneObject[] {
-  return [...buildCardSceneObjects(cards), ...DECORATIVE_OBJECTS];
+  const decorative = DECORATIVE_OBJECTS.map((obj) => {
+    if (obj.kind === "calendario" && events) {
+      return { ...obj, events };
+    }
+    return obj;
+  });
+  return [...buildCardSceneObjects(cards), ...decorative];
 }
