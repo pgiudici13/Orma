@@ -19,6 +19,20 @@ export function stubCanvas2D() {
         if (property === "measureText") {
           return () => ({ width: 42 });
         }
+        // Le mappe derivate (normal map da altezza) leggono e riscrivono i
+        // pixel: senza questi due lo stub restituirebbe `undefined` e la
+        // derivazione fallirebbe solo nei test.
+        if (property === "getImageData" || property === "createImageData") {
+          return (...args: number[]) => {
+            const [width, height] =
+              args.length === 4 ? args.slice(2) : args.slice(0, 2);
+            return {
+              width,
+              height,
+              data: new Uint8ClampedArray(width * height * 4),
+            };
+          };
+        }
         return () => {};
       },
       set: () => true,

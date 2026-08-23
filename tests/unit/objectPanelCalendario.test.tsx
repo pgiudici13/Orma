@@ -1,6 +1,15 @@
 import { render, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ObjectPanel } from "@/components/panel/ObjectPanel";
+import { resetSurfaceCache } from "@/lib/scene/useSurfaceData";
+
+// Le superfici caricano i propri dati con una Server Action (DEC-021), che in
+// jsdom non ha una richiesta a cui agganciarsi. Qui interessa il contenuto che
+// l'oggetto porta già con sé: il caricamento resta in sospeso, come quando la
+// rete è lenta.
+vi.mock("@/app/actions/surfaces", () => ({
+  loadRepartoSurface: () => new Promise(() => {}),
+}));
 import type { EventoData, SceneObject } from "@/lib/scene/objects";
 import { SceneDataProvider } from "@/lib/scene/SceneDataContext";
 import { useSceneStore } from "@/lib/scene/store";
@@ -17,6 +26,7 @@ function renderPanelWithObject(object: SceneObject) {
 describe("ObjectPanel — Calendario di Reparto (P7-T03)", () => {
   beforeEach(() => {
     useSceneStore.setState({ focusedId: null, focusOrigin: null });
+    resetSurfaceCache();
   });
 
   it("mostra gli eventi del calendario di Reparto quando l'oggetto calendario è a fuoco", async () => {
@@ -49,7 +59,9 @@ describe("ObjectPanel — Calendario di Reparto (P7-T03)", () => {
     expect(
       within(panel).getByText(/Grande gioco di San Giorgio/),
     ).toBeInTheDocument();
-    expect(within(panel).getByText("Apri Reparto →")).toBeInTheDocument();
+    // Il rimando alla pagina Reparto non serve più: il Reparto è la cassetta
+    // accanto sul tavolo, non una pagina altrove (DEC-019).
+    expect(within(panel).queryByText("Apri Reparto →")).toBeNull();
   });
 
   it("mostra un messaggio informativo quando non ci sono eventi in programma", async () => {
@@ -66,7 +78,7 @@ describe("ObjectPanel — Calendario di Reparto (P7-T03)", () => {
 
     const panel = await screen.findByRole("dialog");
     expect(
-      within(panel).getByText("Nessun evento in programma per il tuo Reparto."),
+      within(panel).getByText("Nessun evento futuro registrato al momento."),
     ).toBeInTheDocument();
   });
 });

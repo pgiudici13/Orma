@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
 import { useSceneStore } from "@/lib/scene/store";
 import { TABLE_GEOMETRY } from "./geometry";
-import { getWoodTexture } from "./materials/textures";
+import { WoodSurface } from "./materials/Surfaces";
 
 /**
  * Piano del tavolo: un unico blocco di legno con bordo visibile, così la scena
@@ -13,7 +12,6 @@ import { getWoodTexture } from "./materials/textures";
  * mano tornando al tavolo.
  */
 export function TableTop() {
-  const woodMap = useMemo(() => getWoodTexture(), []);
   const clear = useSceneStore((state) => state.clear);
 
   return (
@@ -24,7 +22,7 @@ export function TableTop() {
       name="table-top"
       onClick={() => clear()}
     >
-      <meshStandardMaterial map={woodMap} roughness={0.68} metalness={0.02} />
+      <WoodSurface />
     </mesh>
   );
 }

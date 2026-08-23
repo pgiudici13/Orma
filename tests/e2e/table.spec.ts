@@ -9,20 +9,16 @@ import { expect, test, type Page } from "@playwright/test";
  * segreti nel repository.
  */
 
+import {
+  MAX_DRAW_CALLS,
+  MAX_TEXTURE_MB,
+  MAX_TRIANGLES,
+  readPerf,
+} from "./budget";
+
 const email = process.env.E2E_EMAIL;
 const password = process.env.E2E_PASSWORD;
 const hasCredentials = Boolean(email && password);
-
-/** Soglie dichiarate in docs/SDD.md §10. */
-const MAX_DRAW_CALLS = 25;
-const MAX_TEXTURE_MB = 12;
-
-type PerfSnapshot = {
-  calls: number;
-  triangles: number;
-  textures: number;
-  textureBytes: number;
-};
 
 async function login(page: Page) {
   await page.goto("/login");
@@ -58,14 +54,10 @@ test.describe("tavolo autenticato", () => {
       })
       .toBeGreaterThan(600);
 
-    const perf = await page.waitForFunction(
-      () => (window as unknown as { __ormaPerf?: PerfSnapshot }).__ormaPerf,
-      undefined,
-      { timeout: 15_000 },
-    );
-    const snapshot = (await perf.jsonValue()) as PerfSnapshot;
+    const snapshot = await readPerf(page);
 
     expect(snapshot.calls).toBeLessThanOrEqual(MAX_DRAW_CALLS);
+    expect(snapshot.triangles).toBeLessThanOrEqual(MAX_TRIANGLES);
     expect(snapshot.textureBytes / (1024 * 1024)).toBeLessThanOrEqual(
       MAX_TEXTURE_MB,
     );

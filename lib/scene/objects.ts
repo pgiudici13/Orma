@@ -17,7 +17,15 @@ export type SceneObjectKind =
   | "calendario"
   | "foglio"
   | "matita"
-  | "bussola";
+  | "bussola"
+  | "cassetta"
+  | "guidone"
+  | "album"
+  | "quaderno"
+  | "mappa"
+  | "rubrica"
+  | "tessera"
+  | "busta";
 
 /**
  * Gli oggetti decorativi/di navigazione hanno id letterali fissi. Le carte di
@@ -73,6 +81,14 @@ export const KIND_LABEL: Record<SceneObjectKind, string> = {
   foglio: "Foglio",
   matita: "Matita",
   bussola: "Bussola",
+  cassetta: "Reparto",
+  guidone: "Squadriglie",
+  album: "Specialità",
+  quaderno: "Competenze",
+  mappa: "Tappe",
+  rubrica: "Maestri",
+  tessera: "Impostazioni",
+  busta: "Reparto",
 };
 
 export const SCENE_OBJECTS: readonly SceneObject[] = [
@@ -131,6 +147,69 @@ export const SCENE_OBJECTS: readonly SceneObject[] = [
     tilt: 12,
   },
   {
+    id: "cassetta-reparto",
+    kind: "cassetta",
+    title: "Cassetta di Reparto",
+    label: KIND_LABEL.cassetta,
+    interactive: true,
+    spot: [1.3, -0.15],
+    tilt: -12,
+  },
+  {
+    id: "guidone",
+    kind: "guidone",
+    title: "Guidone di Squadriglia",
+    label: KIND_LABEL.guidone,
+    interactive: true,
+    spot: [1.35, 0.62],
+    tilt: 14,
+  },
+  {
+    id: "album-specialita",
+    kind: "album",
+    title: "Album dei distintivi",
+    label: KIND_LABEL.album,
+    interactive: true,
+    spot: [-1.5, -0.12],
+    tilt: 6,
+  },
+  {
+    id: "quaderno-competenze",
+    kind: "quaderno",
+    title: "Quaderno delle Competenze",
+    label: KIND_LABEL.quaderno,
+    interactive: true,
+    spot: [-1.35, 0.68],
+    tilt: -9,
+  },
+  {
+    id: "mappa-tappe",
+    kind: "mappa",
+    title: "Mappa delle Tappe",
+    label: KIND_LABEL.mappa,
+    interactive: true,
+    spot: [0.06, -0.74],
+    tilt: -4,
+  },
+  {
+    id: "rubrica-maestri",
+    kind: "rubrica",
+    title: "Rubrica dei Maestri",
+    label: KIND_LABEL.rubrica,
+    interactive: true,
+    spot: [-0.62, 0.95],
+    tilt: 11,
+  },
+  {
+    id: "tessera",
+    kind: "tessera",
+    title: "Tessera personale",
+    label: KIND_LABEL.tessera,
+    interactive: true,
+    spot: [0.66, 0.94],
+    tilt: -7,
+  },
+  {
     id: "matita",
     kind: "matita",
     title: "Matita",
@@ -138,6 +217,15 @@ export const SCENE_OBJECTS: readonly SceneObject[] = [
     interactive: false,
     spot: [0.26, 0.68],
     tilt: -18,
+  },
+  {
+    id: "busta-adesione",
+    kind: "busta",
+    title: "Richiesta di adesione",
+    label: KIND_LABEL.busta,
+    interactive: true,
+    spot: [1.05, 0.95],
+    tilt: 5,
   },
   {
     id: "bussola",
@@ -242,16 +330,48 @@ export function buildCardSceneObjects(
   });
 }
 
-/** Lista completa da mostrare sul tavolo: carte reali + oggetti decorativi/calendario. */
-export function mergeSceneObjects(
-  cards: readonly CardData[],
-  events?: readonly EventoData[],
-): readonly SceneObject[] {
-  const decorative = DECORATIVE_OBJECTS.map((obj) => {
-    if (obj.kind === "calendario" && events) {
-      return { ...obj, events };
-    }
-    return obj;
-  });
+/**
+ * Contesto da cui dipende cosa c'è sul tavolo.
+ *
+ * Il tavolo non è una lista fissa: cambia con il percorso dell'utente (le carte
+ * in corso), con il suo Reparto (calendario, membri, Squadriglie) e con il suo
+ * ruolo. Tenere la decisione in un unico posto evita che scena 3D e
+ * composizione 2D divergano su quali oggetti esistono (DEC-013).
+ */
+export type TableContext = {
+  /** Specialità/Competenze/Tappe con progresso attivo. */
+  cards?: readonly CardData[];
+  /** Eventi del Reparto, mostrati dal calendario. */
+  events?: readonly EventoData[];
+  /**
+   * Se l'utente appartiene già a un Reparto. Chi non ne fa parte trova sul
+   * tavolo la busta della richiesta di adesione al posto degli oggetti di
+   * Reparto: il tavolo racconta la situazione reale invece di offrire cassetti
+   * vuoti.
+   */
+  hasReparto?: boolean;
+};
+
+/** Oggetti che hanno senso solo dentro un Reparto. */
+const REPARTO_KINDS: ReadonlySet<SceneObjectKind> = new Set([
+  "cassetta",
+  "guidone",
+  "calendario",
+]);
+
+/** Lista completa da mostrare sul tavolo, dato il contesto dell'utente. */
+export function buildTable({
+  cards = [],
+  events,
+  hasReparto = true,
+}: TableContext = {}): readonly SceneObject[] {
+  const decorative = DECORATIVE_OBJECTS.filter((object) =>
+    object.kind === "busta"
+      ? !hasReparto
+      : hasReparto || !REPARTO_KINDS.has(object.kind),
+  ).map((object) =>
+    object.kind === "calendario" && events ? { ...object, events } : object,
+  );
+
   return [...buildCardSceneObjects(cards), ...decorative];
 }

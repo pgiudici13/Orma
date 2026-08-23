@@ -4,15 +4,13 @@ import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useRef, useState } from "react";
 import type { Group } from "three";
-import {
-  sceneObjectAriaLabel,
-  type SceneObject,
-  type SceneObjectKind,
-} from "@/lib/scene/objects";
+import { sceneObjectAriaLabel, type SceneObject } from "@/lib/scene/objects";
 import { useSceneObjects } from "@/lib/scene/SceneDataContext";
 import { useSceneStore } from "@/lib/scene/store";
 import { SETTLED, damp } from "./animation";
 import { Card3D } from "./Card3D";
+import { restingHeight } from "./geometry";
+import { HitProxy } from "./HitProxy";
 import {
   Calendar3D,
   Compass3D,
@@ -20,18 +18,15 @@ import {
   Pencil3D,
   Sheet3D,
 } from "./Props3D";
-
-/** Quota di appoggio sul piano: metà dello spessore di ogni oggetto. */
-const RESTING_Y: Record<SceneObjectKind, number> = {
-  specialita: 0.003,
-  competenza: 0.003,
-  tappa: 0.003,
-  taccuino: 0.025,
-  calendario: 0.006,
-  foglio: 0.001,
-  matita: 0.008,
-  bussola: 0.009,
-};
+import {
+  Album3D,
+  Busta3D,
+  Mappa3D,
+  Quaderno3D,
+  Rubrica3D,
+  Tessera3D,
+} from "./props/Percorso3D";
+import { Cassetta3D, Guidone3D } from "./props/Reparto3D";
 
 const LIFT_FOCUSED = 0.17;
 const LIFT_HOVERED = 0.02;
@@ -54,6 +49,22 @@ function ObjectMesh({ object }: { object: SceneObject }) {
       return <Pencil3D />;
     case "bussola":
       return <Compass3D />;
+    case "cassetta":
+      return <Cassetta3D />;
+    case "guidone":
+      return <Guidone3D />;
+    case "album":
+      return <Album3D />;
+    case "quaderno":
+      return <Quaderno3D />;
+    case "mappa":
+      return <Mappa3D />;
+    case "rubrica":
+      return <Rubrica3D />;
+    case "tessera":
+      return <Tessera3D />;
+    case "busta":
+      return <Busta3D />;
   }
 }
 
@@ -65,7 +76,7 @@ function PlacedObject({ object }: { object: SceneObject }) {
   const invalidate = useThree((state) => state.invalidate);
 
   const isFocused = focusedId === object.id;
-  const restingY = RESTING_Y[object.kind];
+  const restingY = restingHeight(object.kind);
 
   useFrame((_, delta) => {
     const group = innerRef.current;
@@ -122,6 +133,7 @@ function PlacedObject({ object }: { object: SceneObject }) {
     >
       <group ref={innerRef} position={[0, restingY, 0]} {...interactionProps}>
         <ObjectMesh object={object} />
+        {object.interactive ? <HitProxy kind={object.kind} /> : null}
       </group>
 
       {object.interactive ? <ObjectHotspot object={object} /> : null}
@@ -134,12 +146,26 @@ function PlacedObject({ object }: { object: SceneObject }) {
  * ancorato alla sua posizione. È trasparente e non intercetta il mouse — il
  * click passa alla mesh — ma è raggiungibile da Tab e attivabile da tastiera,
  * con anello di focus visibile sopra l'oggetto.
+ *
+ * `pointerEvents: "none"` va dichiarato **due volte**, e non è ridondanza: drei
+ * costruisce un `div` wrapper attorno ai figli e gli applica soltanto
+ * `{position, transform, ...style}` (`@react-three/drei/web/Html.js`). Senza lo
+ * `style` qui sotto quel wrapper resta a `pointer-events: auto` e copre
+ * l'oggetto con un rettangolo opaco agli eventi: il raycaster di R3F non riceve
+ * mai il puntatore al centro dell'oggetto (vedi `.claude/CORRECTIONS.md`).
+ * Sul bottone serve comunque, perché un figlio a `auto` tornerebbe cliccabile
+ * anche dentro un genitore inerte.
  */
 function ObjectHotspot({ object }: { object: SceneObject }) {
   const focus = useSceneStore((state) => state.focus);
 
   return (
-    <Html center position={[0, 0.02, 0]} zIndexRange={[20, 10]}>
+    <Html
+      center
+      position={[0, 0.02, 0]}
+      zIndexRange={[20, 10]}
+      style={{ pointerEvents: "none" }}
+    >
       <button
         type="button"
         data-scene-hotspot={object.id}

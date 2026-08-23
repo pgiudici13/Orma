@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PaperPage } from "@/components/layout/PaperPage";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "ORMA — Admin" };
@@ -66,7 +67,7 @@ export default async function AdminPage() {
   const tappaRows = tappa ?? [];
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-16">
+    <PaperPage larghezza="max-w-4xl">
       <p
         className="font-sans text-[10px] tracking-[0.16em] uppercase"
         style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
@@ -141,6 +142,6 @@ export default async function AdminPage() {
           </tbody>
         </table>
       </div>
-    </main>
+    </PaperPage>
   );
 }

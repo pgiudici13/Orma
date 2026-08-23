@@ -18,6 +18,10 @@ Ogni colore nasce da un materiale fisico presente sul tavolo, non da una palette
 | Metallo | Ottone/alluminio opaco di bussola, fibbie, graffette | `#8D8C7E` | bussola, fermagli, dettagli metallici |
 | Inchiostro | Inchiostro/matita su carta chiara, non nero puro | `#2C2216` | testo su carta, contorni |
 | Accento | Filo/cordino rosso dei distintivi scout, usato con parsimonia | `#9C3B2B` | stati attivi, piccoli dettagli, mai come sfondo |
+| Ottone lucido | Serbatoio e cappello di una lanterna a gas da campo | `#B08A4F` | corpo della lampada |
+| Ottone brunito | Base e maniglia della stessa lanterna, annerite dall'uso | `#7C5F34` | base, collare, maniglia |
+| Vetro caldo | Vetro della lanterna, affumicato da anni di fiamma | `#F7E8CA` | camino della lampada |
+| Fiamma | Fiamma a gas: giallo caldo, non arancione da fuoco di legna | `#FFB46B` | fiamma, luce calda della scena |
 
 Nota deliberata: la carta **non** è un bianco/crema puro (evita l'estetica "moodboard AI" da crema piatta + accento decorativo) — è spostata verso il kraft/khaki, coerente con carta reale non sbiancata. Il tessuto verde oliva, non il rosso, è il colore dominante secondario (memoria visiva della divisa/zaino scout), l'accento rosso resta un dettaglio sporadico (distintivo, cordino), mai un blocco di colore.
 
@@ -36,6 +40,12 @@ Materializzati in `app/globals.css` come CSS custom properties, esposti a Tailwi
 | `--metal-base` | `#8D8C7E` | metallo opaco | bussola, fermagli |
 | `--ink` | `#2C2216` | inchiostro/matita | testo su carta |
 | `--accent` | `#9C3B2B` | filo/distintivo | stato attivo, dettaglio puntuale |
+| `--brass-base` | `#B08A4F` | ottone lucido | serbatoio e cappello della lampada |
+| `--brass-dark` | `#7C5F34` | ottone brunito | base, collare, maniglia |
+| `--glass-warm` | `#F7E8CA` | vetro affumicato | camino della lampada |
+| `--lamp-flame` | `#FFB46B` | fiamma a gas | fiamma e luce calda della scena |
+
+I quattro token della lampada sono stati aggiunti con [DEC-020](../.claude/DECISIONS.md#dec-020--resa-realistica-pbr-in-tempo-reale-ambiente-procedurale-ombre-morbide--niente-path-tracing). Vivono in tre posti che vanno tenuti allineati: `app/globals.css` (fonte), `components/three/materials/palette.ts` (fallback per SSR e test), questa tabella (documentazione). La scena 3D li legge sempre a runtime da `materialColor()`, mai con hex scritti nei componenti.
 
 I materiali **non** seguono `prefers-color-scheme`: un tavolo di legno reale non ha un "dark mode fisico". Il blocco `@media (prefers-color-scheme: dark)` esistente in `globals.css` resta limitato a `--background`/`--foreground`, usati dalle superfici di sistema (login, registrazione, form) che restano DOM standard — non dalla scena tavolo.
 

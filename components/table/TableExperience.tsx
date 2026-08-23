@@ -2,13 +2,12 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { ObjectPanel } from "@/components/panel/ObjectPanel";
 import {
+  buildTable,
   type CardData,
   type EventoData,
-  mergeSceneObjects,
 } from "@/lib/scene/objects";
 import { SceneDataProvider } from "@/lib/scene/SceneDataContext";
 import { useSceneCapabilities } from "@/lib/scene/useSceneCapabilities";
@@ -43,17 +42,41 @@ const SHOW_PERF = process.env.NODE_ENV !== "production";
 export function TableExperience({
   cards = [],
   events = [],
+  hasReparto = true,
+  initialFocus,
 }: {
   /** Specialità/Competenze/Tappe con progresso attivo (P3-T04), da Supabase. */
   cards?: CardData[];
   /** Eventi del calendario di Reparto (P7-T03). */
   events?: EventoData[];
+  /** Se l'utente appartiene a un Reparto: decide quali oggetti stanno sul tavolo. */
+  hasReparto?: boolean;
+  /**
+   * Oggetto da aprire all'arrivo. Le rotte che prima erano pagine piene
+   * (`/reparto`, `/impostazioni`, …) sono deep-link al tavolo con l'oggetto
+   * corrispondente già a fuoco (DEC-019).
+   */
+  initialFocus?: string;
 }) {
-  const { mode } = useSceneCapabilities();
+  const { mode, quality } = useSceneCapabilities();
   const focusedId = useSceneStore((state) => state.focusedId);
   const clear = useSceneStore((state) => state.clear);
   const reducedMotion = useReducedMotion();
-  const objects = useMemo(() => mergeSceneObjects(cards, events), [cards, events]);
+  const objects = useMemo(
+    () => buildTable({ cards, events, hasReparto }),
+    [cards, events, hasReparto],
+  );
+
+  // Arrivo da un deep-link: l'oggetto è già aperto, ma senza punto di origine —
+  // il pannello entra dal centro invece che dalla posizione dell'oggetto,
+  // perché nessuno lo ha "preso in mano" da un punto preciso dello schermo.
+  const focus = useSceneStore((state) => state.focus);
+  const opened = useRef(false);
+  useEffect(() => {
+    if (!initialFocus || opened.current) return;
+    opened.current = true;
+    focus(initialFocus);
+  }, [initialFocus, focus]);
 
   // Ogni cambio di modalità riparte dal tavolo: un oggetto aperto nella scena
   // 3D non deve restare a fuoco in una composizione che non lo mostra così.
@@ -88,7 +111,7 @@ export function TableExperience({
         >
           {mode === "scene3d" ? (
             <div className="absolute inset-0">
-              <TableCanvas />
+              <TableCanvas quality={quality} />
             </div>
           ) : (
             <TableFlat />
@@ -97,28 +120,9 @@ export function TableExperience({
 
         <ObjectPanel />
 
-        {!focused ? (
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-4">
-            <Link
-              href="/reparto"
-              className="font-sans text-[11px] tracking-wide underline underline-offset-2"
-              style={{
-                color: "color-mix(in srgb, var(--ink) 75%, transparent)",
-              }}
-            >
-              Reparto
-            </Link>
-            <Link
-              href="/impostazioni"
-              className="font-sans text-[11px] tracking-wide underline underline-offset-2"
-              style={{
-                color: "color-mix(in srgb, var(--ink) 55%, transparent)",
-              }}
-            >
-              Impostazioni
-            </Link>
-          </div>
-        ) : null}
+        {/* Nessun link di navigazione sopra la scena: Reparto e Impostazioni
+            sono oggetti sul tavolo (DEC-019). L'accesso da tastiera resta
+            garantito dagli hotspot di ogni oggetto (Tab + Invio). */}
 
         {SHOW_PERF && mode === "scene3d" ? <PerfOverlay /> : null}
       </div>

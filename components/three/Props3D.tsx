@@ -3,6 +3,11 @@
 import { useMemo } from "react";
 import { materialColor } from "./materials/palette";
 import {
+  FabricSurface,
+  MetalSurface,
+  PaperSurface,
+} from "./materials/Surfaces";
+import {
   getCalendarTexture,
   getCompassTexture,
   getNotebookTexture,
@@ -25,7 +30,7 @@ export function Notebook3D() {
 
   return (
     <mesh castShadow receiveShadow geometry={NOTEBOOK_GEOMETRY}>
-      <meshStandardMaterial map={map} roughness={0.92} metalness={0} />
+      <FabricSurface map={map} />
     </mesh>
   );
 }
@@ -35,7 +40,7 @@ export function Calendar3D() {
 
   return (
     <mesh castShadow receiveShadow geometry={CALENDAR_GEOMETRY}>
-      <meshStandardMaterial map={map} roughness={0.84} metalness={0} />
+      <PaperSurface map={map} />
     </mesh>
   );
 }
@@ -45,7 +50,7 @@ export function Sheet3D() {
 
   return (
     <mesh castShadow receiveShadow geometry={SHEET_GEOMETRY}>
-      <meshStandardMaterial map={map} roughness={0.9} metalness={0} />
+      <PaperSurface map={map} />
     </mesh>
   );
 }
@@ -67,16 +72,22 @@ export function Pencil3D() {
 }
 
 export function Compass3D() {
-  const metal = useMemo(() => materialColor("--metal-base"), []);
   const face = useMemo(() => getCompassTexture(), []);
 
   return (
     <group>
       <mesh castShadow receiveShadow geometry={COMPASS_BODY_GEOMETRY}>
-        <meshStandardMaterial color={metal} roughness={0.35} metalness={0.75} />
+        <MetalSurface />
       </mesh>
+      {/* Vetro del quadrante: quasi liscio, così prende il riflesso della
+          lampada come farebbe un vetro vero. */}
       <mesh geometry={COMPASS_FACE_GEOMETRY} position={[0, 0.01, 0]}>
-        <meshStandardMaterial map={face} roughness={0.45} metalness={0.05} />
+        <meshStandardMaterial
+          map={face}
+          roughness={0.18}
+          metalness={0.05}
+          envMapIntensity={1.4}
+        />
       </mesh>
     </group>
   );

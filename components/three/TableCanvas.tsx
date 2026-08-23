@@ -1,11 +1,14 @@
 "use client";
 
+import { SoftShadows } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { useEffect, useState } from "react";
 import { useSceneStore } from "@/lib/scene/store";
+import type { SceneQuality } from "@/lib/scene/useSceneCapabilities";
 import { CameraRig } from "./CameraRig";
 import { Lighting } from "./Lighting";
 import { PERF_ENABLED, PerfProbe } from "./PerfHud";
+import { GasLamp } from "./props/GasLamp";
 import { SceneObjects } from "./SceneObjects";
 import { TableTop } from "./TableTop";
 
@@ -30,7 +33,7 @@ function FontsReadyInvalidate() {
   return null;
 }
 
-export function TableCanvas() {
+export function TableCanvas({ quality }: { quality: SceneQuality }) {
   const clear = useSceneStore((state) => state.clear);
   // La scena è caricata solo sul client (`ssr: false`), quindi la query string
   // è già leggibile al primo render.
@@ -43,10 +46,17 @@ export function TableCanvas() {
   return (
     <Canvas
       shadows
-      dpr={[1, 2]}
+      dpr={quality === "alto" ? [1, 2] : [1, 1.5]}
       frameloop={continuousLoop ? "always" : "demand"}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
-      camera={{ position: [0, 2.05, 1.75], fov: 38, near: 0.1, far: 20 }}
+      gl={{
+        antialias: true,
+        powerPreference: "high-performance",
+        // Esposizione leggermente sopra 1: la scena è illuminata a lume di
+        // lampada, e il tone mapping filmico di R3F (ACES) altrimenti chiude
+        // troppo le ombre del legno.
+        toneMappingExposure: 1.15,
+      }}
+      camera={{ position: [0, 2.35, 2.1], fov: 41, near: 0.1, far: 20 }}
       onPointerMissed={(event) => {
         // Vale come "click a vuoto" solo ciò che avviene davvero sulla
         // superficie della scena: l'attivazione da tastiera di un hotspot
@@ -56,10 +66,18 @@ export function TableCanvas() {
       }}
     >
       <color attach="background" args={["#150f08"]} />
-      <fog attach="fog" args={["#150f08", 4.2, 8]} />
+      <fog attach="fog" args={["#150f08", 4.8, 9.2]} />
 
-      <Lighting />
+      {/* Ombre ad area (PCSS): il bordo dell'ombra si allarga con la distanza
+          dall'oggetto, come sotto una lampada vera. È una patch agli shader,
+          non un pass di post-processing: DEC-014 resta valida. */}
+      {quality === "alto" ? (
+        <SoftShadows size={26} samples={12} focus={0.7} />
+      ) : null}
+
+      <Lighting quality={quality} />
       <TableTop />
+      <GasLamp />
       <SceneObjects />
       <CameraRig />
       <FontsReadyInvalidate />

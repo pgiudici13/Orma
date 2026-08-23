@@ -345,6 +345,88 @@ Implementati tutti i 3 task con migrazione `20260823100000_reparto_funzionalita.
 - **Test necessari**: test RLS su visibilità eventi.
 - **Stato**: completato. Tabella `evento` con RLS multi-tenant (lettura per membri con consenso, scrittura per Capi/Admin); UI agenda scout in `app/reparto/CalendarioSection.tsx` con creazione/modifica/eliminazione; integrazione dinamica con l'oggetto `calendario` sul tavolo scout tramite `ObjectPanel` (`components/panel/ObjectPanel.tsx`) e query `getTableEvents` (`lib/queries/cards.ts`).
 
+### Nota aperta — Reparto (`app/reparto/`, `app/onboarding-reparto/`) da rivedere: non rispetta la metafora del tavolo
+
+Segnalato dal proprietario del progetto (2026-08-23): le pagine `app/reparto/*` e `app/onboarding-reparto/` sono route Next.js a pagina piena, fuori dalla scena tavolo — violano il vincolo §15 di `PROJECT.md` ("Non trasformare la Home in una dashboard/sidebar standard") e il principio 1 di `CLAUDE.md` ("Do not replace the desk concept with a standard sidebar/dashboard layout"). Vanno riportate dentro l'esperienza tavolo/carta (come già fatto per Calendario, che ha un oggetto `calendario` sul tavolo pur mantenendo l'`ObjectPanel` come superficie di contenuto), con più elementi/oggetti sul tavolo di quanto originariamente previsto in Fase 7. Contiene inoltre lo stesso bug di contrasto `--ink` senza sfondo esplicito descritto in `CORRECTIONS.md` ("Testo `--ink` illeggibile in dark mode...").
+
+**Presa in carico dal Redesign trasversale qui sotto** (sessione del 2026-08-23): la nota si chiude con RD-T06/RD-T07.
+
+---
+
+## Redesign — Scena tavolo (trasversale, non è una nuova fase)
+
+Sessione dedicata aperta il 2026-08-23 su richiesta del proprietario del progetto. Non altera la numerazione delle fasi di `CLAUDE.md`: riprende lavoro già svolto nelle Fasi 2, 3 e 7 e chiude la nota aperta qui sopra. Tre obiettivi, in ordine di priorità: (1) gli oggetti della scena non si riuscivano a cliccare; (2) ogni funzionalità dell'app deve essere un oggetto fisico sul tavolo, nessuna pagina piena; (3) resa visiva molto più vicina alla fotografia richiesta da `docs/DESIGN.md`.
+
+### RD-T01 — Interazione: gli oggetti non si riescono a cliccare
+
+- **Obiettivo**: rendere ogni oggetto interattivo cliccabile al centro, non solo di taglio.
+- **Dipendenze**: nessuna.
+- **File/componenti**: `components/three/SceneObjects.tsx`, `components/three/CameraRig.tsx`, `components/three/HitProxy.tsx` (nuovo), `components/three/geometry.ts`, `app/tavolo-dev/` (sandbox di sviluppo), `lib/supabase/middleware.ts`.
+- **Criteri di completamento**: `document.elementFromPoint` al centro di ogni hotspot restituisce il canvas; un click di mouse apre il pannello; nessun errore in console mentre la camera si muove su una carta reale.
+- **Test necessari**: `tests/unit/hitProxy.test.ts`, `tests/e2e/tableInteraction.spec.ts`.
+- **Stato**: completato. Due cause distinte, entrambe registrate in `CORRECTIONS.md`: il wrapper `<Html>` di drei restava a `pointer-events: auto` e copriva ogni oggetto con un rettangolo di 80×96 px; `CameraRig` risolveva l'oggetto a fuoco nel set dimostrativo e sollevava un'eccezione dentro `useFrame` sugli id delle carte reali. Aggiunti volumi di presa invisibili (`HitProxy`) e quota di appoggio derivata dall'ingombro reale invece che da una tabella di costanti. I tre E2E sono stati verificati falliti sullo stato pre-fix prima di essere considerati validi.
+
+### RD-T02 — Architettura della scena: registry di oggetti e superfici
+
+- **Obiettivo**: un solo punto in cui si dichiara quali oggetti stanno sul tavolo e quale superficie apre ognuno, condiviso da scena 3D e composizione 2D.
+- **Dipendenze**: RD-T01.
+- **File/componenti**: `lib/scene/objects.ts` (`buildTable(context)`), `components/panel/ObjectPanel.tsx` + `components/panel/surfaces/`, `components/reparto/` (sezioni spostate da `app/reparto/`), `lib/scene/store.ts`.
+- **Criteri di completamento**: nessun cambio visivo; `ObjectPanel` non contiene più uno `switch` per famiglia.
+- **Test necessari**: unit sul registry delle superfici e su `buildTable`.
+- **Stato**: completato. `buildTable(context)` come fonte unica degli oggetti (varia con il Reparto dell'utente), registro `kind → superficie` in `components/panel/surfaces/` al posto dello `switch` nel pannello, larghezza del foglio dichiarata per superficie, sezioni di Reparto spostate in `components/reparto/` e `RepartoTabs` eliminato (le tre schede sono ora tre oggetti distinti).
+
+### RD-T03 — Caricamento dati per superficie
+
+- **Obiettivo**: la Home non deve prefetchare membri, Squadriglie e catalogo per disegnare un tavolo.
+- **Dipendenze**: RD-T02.
+- **File/componenti**: `app/actions/surfaces.ts` (nuovo), hook `useSurfaceData`.
+- **Criteri di completamento**: i dati di una superficie arrivano all'apertura dell'oggetto; autorizzazione sempre via RLS, mai `user_id` dal client.
+- **Test necessari**: unit sullo stato di caricamento del pannello.
+- **Stato**: completato. `app/actions/surfaces.ts` (sola lettura, identità dalla sessione, autorizzazione RLS) e hook `lib/scene/useSurfaceData.ts` con cache per pagina, gestione degli errori e `reload()` dopo ogni scrittura. Le sezioni riusate ricevono `onMutated`, perché `revalidatePath` invalida la cache del server e non quella del client.
+
+### RD-T04 — Resa realistica: luce, ambiente, materiali
+
+- **Obiettivo**: materiali PBR completi, ambiente per i riflessi, ombre morbide, tone mapping filmico ([DEC-020](DECISIONS.md)).
+- **Dipendenze**: RD-T01.
+- **File/componenti**: `components/three/Lighting.tsx`, `components/three/materials/*`, `components/three/geometry.ts`, `lib/scene/useSceneCapabilities.ts` (livelli di qualità).
+- **Criteri di completamento**: verifica visiva a confronto con la baseline; nessun `EffectComposer` (DEC-014 resta valida).
+- **Test necessari**: unit su texture/livelli di qualità, budget di performance E2E aggiornato.
+- **Stato**: completato. Ambiente procedurale con `Lightformer` (nessun HDRI esterno), materiali dichiarati per materiale in `materials/Surfaces.tsx`, mappe di normali derivate dallo stesso tracciato del colore, occlusione/rugosità/metallicità impacchettate in una texture sola, lastre con angoli raccordati e spigolo smussato, livelli `alto`/`base` in `useSceneCapabilities` (forzabili con `?q=`). Direzione visiva conseguente: tavolo illuminato di sera, lampada come luce dominante.
+
+### RD-T05 — Lampada a gas
+
+- **Obiettivo**: nuovo oggetto decorativo con sorgente di luce reale, calda, coerente con `docs/DESIGN.md`.
+- **Dipendenze**: RD-T04.
+- **File/componenti**: `components/three/props/GasLamp.tsx`, `components/three/geometry.ts`, `docs/VISUAL_REFERENCE.md`.
+- **Criteri di completamento**: la lampada illumina davvero gli oggetti vicini; budget di performance ri-misurato e documentato in `docs/SDD.md` §10.
+- **Test necessari**: budget E2E, verifica visiva.
+- **Stato**: completato. Lanterna da campo di ~30 cm (base, serbatoio, collare, vetro, cappello, maniglia) in `components/three/props/GasLamp.tsx`, con la sorgente calda della scena posizionata dentro il suo vetro: la luce ha una causa visibile. Decorativa, non intercetta eventi. Il vetro non usa `transmission` (costringerebbe il renderer a un passaggio in più su tutta la scena, per una differenza non percepibile a questa dimensione); il bagliore è un alone additivo molto tenue, non post-processing. Budget rimisurato: 21 draw call, 3 172 triangoli, 13,9 MB.
+
+### RD-T06 — Reparto, Squadriglie, Calendario sul tavolo
+
+- **Obiettivo**: chiudere la nota aperta di Fase 7 — nessuna pagina piena per le funzionalità di Reparto.
+- **Dipendenze**: RD-T02, RD-T03.
+- **File/componenti**: nuovi oggetti cassetta e guidone, superfici corrispondenti, `app/reparto/page.tsx` ridotta a deep-link.
+- **Criteri di completamento**: `/reparto` apre il tavolo con l'oggetto a fuoco; le richieste di adesione sono visibili solo a Capo/admin.
+- **Test necessari**: E2E di apertura superficie, unit sulle sezioni spostate.
+- **Stato**: completato. Cassetta di Reparto (membri + richieste di adesione per Capi/admin) e guidone (Squadriglie), calendario completo con le azioni dei Capi; `/reparto` ridotta a deep-link. Chiude la nota aperta di Fase 7.
+
+### RD-T07 — Percorso personale, Maestri, Impostazioni, adesione
+
+- **Obiettivo**: album, quaderno, mappa, rubrica, tessera, busta; rimozione dei link di navigazione residui; `PaperPage` per le sole pagine che restano fuori dal tavolo.
+- **Dipendenze**: RD-T06.
+- **Criteri di completamento**: nessuna funzionalità raggiungibile solo da una pagina piena; contrasto testo corretto ovunque.
+- **Test necessari**: E2E per ogni superficie, verifica contrasto in dark mode.
+- **Stato**: completato. Album, quaderno, mappa, rubrica, tessera e busta con le rispettive superfici; `/impostazioni`, `/specialita`, `/competenze`, `/tappe`, `/onboarding-reparto` ridotte a deep-link; link di navigazione rimossi dalla scena; `components/layout/PaperPage.tsx` applicata alle sole pagine rimaste fuori dal tavolo (`app/admin/*`), che chiude la classe di bug `--ink` di `CORRECTIONS.md`.
+
+### RD-T08 — Fallback 2D, suite e documentazione
+
+- **Obiettivo**: parità di accesso nella composizione 2D (DEC-013) e allineamento finale dei documenti.
+- **Dipendenze**: RD-T07.
+- **Criteri di completamento**: gli stessi contenuti sono raggiungibili su viewport mobile; `PROJECT.md`, `SDD.md`, `UX.md`, `DECISIONS.md` allineati.
+- **Test necessari**: suite completa unit + E2E.
+- **Stato**: completato per la parte di parità 2D e suite (targhette per gli oggetti senza disegno piatto dedicato, 45 unit test e 6 E2E verdi). La verifica finale autenticata resta da fare con credenziali reali.
+
 ---
 
 ## Phase 8 — Maestri (ricerca globale)

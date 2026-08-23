@@ -3,7 +3,8 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useRef } from "react";
 import { Vector3 } from "three";
-import { getSceneObject } from "@/lib/scene/objects";
+import { findSceneObject } from "@/lib/scene/objects";
+import { useSceneObjects } from "@/lib/scene/SceneDataContext";
 import { useSceneStore } from "@/lib/scene/store";
 import { SETTLED, damp } from "./animation";
 
@@ -16,7 +17,7 @@ import { SETTLED, damp } from "./animation";
  * contenuto non lo copre.
  */
 
-const REST_POSITION = new Vector3(0, 2.05, 1.75);
+const REST_POSITION = new Vector3(0, 2.35, 2.1);
 const REST_TARGET = new Vector3(0, 0, 0.02);
 const LAMBDA = 4.2;
 
@@ -24,15 +25,33 @@ export function CameraRig() {
   const camera = useThree((state) => state.camera);
   const invalidate = useThree((state) => state.invalidate);
   const focusedId = useSceneStore((state) => state.focusedId);
+  // La lista realmente montata, non il set dimostrativo: le carte reali hanno
+  // id derivati dai dati (`specialita:<slug>`) e cercarle altrove significava
+  // sollevare un'eccezione dentro `useFrame`, ad ogni frame.
+  const objects = useSceneObjects();
 
   const lookAt = useRef(REST_TARGET.clone());
   const desiredPosition = useRef(new Vector3());
   const desiredTarget = useRef(new Vector3());
+  /**
+   * Frame da disegnare ancora dopo che la camera è arrivata.
+   *
+   * Gli hotspot DOM sono ancorati agli oggetti da drei, che ne ricalcola la
+   * posizione sullo schermo dentro il proprio `useFrame`. Fermare il render
+   * loop nell'istante esatto in cui la camera arriva li lascerebbe fermi
+   * all'ultima proiezione calcolata: visibilmente giusti, ma cliccabili dove
+   * la camera era un attimo prima.
+   */
+  const trailingFrames = useRef(0);
 
+  // Priorità negativa: la camera si muove **prima** che gli overlay DOM
+  // proiettino la propria posizione. Con l'ordine inverso ogni hotspot
+  // resterebbe indietro di un frame rispetto a ciò che si vede.
   useFrame((_, delta) => {
-    if (focusedId) {
-      const object = getSceneObject(focusedId);
-      const [x, z] = object.spot;
+    const focused = focusedId ? findSceneObject(objects, focusedId) : undefined;
+
+    if (focused) {
+      const [x, z] = focused.spot;
       desiredPosition.current.set(x + 0.42, 1.34, z + 1.02);
       desiredTarget.current.set(x + 0.42, 0.08, z);
     } else {
@@ -54,13 +73,27 @@ export function CameraRig() {
 
     camera.lookAt(lookAt.current);
 
-    if (
+    const moving =
       camera.position.distanceToSquared(desiredPosition.current) > SETTLED ||
-      lookAt.current.distanceToSquared(desiredTarget.current) > SETTLED
-    ) {
+      lookAt.current.distanceToSquared(desiredTarget.current) > SETTLED;
+
+    if (moving) {
+      // Arrivati, la camera si posa esattamente sulla posa desiderata: senza
+      // questo resterebbe a qualche millimetro, e gli hotspot con lei.
+      trailingFrames.current = 2;
+      invalidate();
+      return;
+    }
+
+    camera.position.copy(desiredPosition.current);
+    lookAt.current.copy(desiredTarget.current);
+    camera.lookAt(lookAt.current);
+
+    if (trailingFrames.current > 0) {
+      trailingFrames.current -= 1;
       invalidate();
     }
-  });
+  }, -1);
 
   return null;
 }

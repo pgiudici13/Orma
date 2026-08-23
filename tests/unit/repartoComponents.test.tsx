@@ -1,11 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { MembriSection, type MemberData } from "@/app/reparto/MembriSection";
-import {
-  SquadriglieSection,
-  type SquadrigliaData,
-} from "@/app/reparto/SquadriglieSection";
-import { CalendarioSection } from "@/app/reparto/CalendarioSection";
+import { MembriSection } from "@/components/reparto/MembriSection";
+import { SquadriglieSection } from "@/components/reparto/SquadriglieSection";
+import { CalendarioSection } from "@/components/reparto/CalendarioSection";
+import type { MemberData, SquadrigliaData } from "@/lib/queries/reparto";
 import type { EventoData } from "@/lib/scene/objects";
 
 const mockMembers: MemberData[] = [
@@ -98,7 +96,9 @@ describe("Fase 7 — MembriSection (P7-T01)", () => {
 
     // Ruoli
     expect(screen.getAllByText(/Capo Reparto/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Esploratore \/ Guida/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Esploratore \/ Guida/).length).toBeGreaterThan(
+      0,
+    );
 
     // Specialità e Tappe
     expect(screen.getByText("Pioniere, Alpinista")).toBeInTheDocument();
@@ -186,15 +186,15 @@ describe("Fase 7 — SquadriglieSection (P7-T02)", () => {
 
 describe("Fase 7 — CalendarioSection (P7-T03)", () => {
   it("renderizza gli eventi in programma e passati", () => {
-    render(
-      <CalendarioSection events={mockEvents} isCapoOrAdmin={false} />,
-    );
+    render(<CalendarioSection events={mockEvents} isCapoOrAdmin={false} />);
 
     expect(screen.getByText("Uscita di Apertura")).toBeInTheDocument();
     expect(screen.getByText("Campo Invernale")).toBeInTheDocument();
     expect(screen.getByText("Uscita Passata")).toBeInTheDocument();
     expect(screen.getByText(/Prati di Monte Sole/)).toBeInTheDocument();
-    expect(screen.getByText(/Prima uscita dell'anno scout/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Prima uscita dell'anno scout/),
+    ).toBeInTheDocument();
   });
 
   it("mostra il pulsante + Nuovo Evento solo per i Capi/Admin", () => {
@@ -203,9 +203,7 @@ describe("Fase 7 — CalendarioSection (P7-T03)", () => {
     );
     expect(screen.queryByText("+ Nuovo Evento")).not.toBeInTheDocument();
 
-    rerender(
-      <CalendarioSection events={mockEvents} isCapoOrAdmin={true} />,
-    );
+    rerender(<CalendarioSection events={mockEvents} isCapoOrAdmin={true} />);
     expect(screen.getByText("+ Nuovo Evento")).toBeInTheDocument();
   });
 });

@@ -8,6 +8,10 @@ const PUBLIC_PATHS = [
   "/privacy",
   "/attesa-consenso",
   "/auth",
+  // Sandbox della scena tavolo: esiste solo in sviluppo (`app/tavolo-dev/`
+  // risponde 404 in produzione), dove serve poter aprire la scena senza
+  // passare dal login ad ogni iterazione di verifica visiva.
+  ...(process.env.NODE_ENV === "production" ? [] : ["/tavolo-dev"]),
 ];
 
 // Esenti dal gate "Reparto non approvato" (P5-T02): l'onboarding stesso,
@@ -29,26 +33,22 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
-          );
-        },
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options),
+        );
       },
     },
-  );
+  });
 
   const {
     data: { user },

@@ -14,21 +14,35 @@ Deve ritrovarsi nel proprio spazio.
 
 La Home è una scena realistica vista dall'alto.
 
-Può contenere:
+**Ogni funzionalità dell'app è un oggetto fisico su questo tavolo.** Nessuna
+funzionalità vive in una pagina a sé: aprire il Reparto, le Squadriglie, il
+catalogo delle Specialità o le proprie impostazioni significa prendere in mano
+l'oggetto corrispondente. Gli indirizzi diretti (`/reparto`, `/impostazioni`, …)
+continuano a funzionare, ma aprono il tavolo con quell'oggetto già in mano.
 
-- carte di Specialità;
-- carte di Competenza;
-- Tappe;
-- calendario;
-- taccuino;
-- fogli;
-- matita;
-- bussola;
-- altri oggetti ambientali.
+Oggetti interattivi:
 
-Non tutti gli oggetti sono interattivi.
+| Oggetto | Cosa apre |
+| --- | --- |
+| carte di Specialità, Competenza, Tappa | il percorso in corso: contenuto ufficiale, progresso, note, Maestro |
+| cassetta di Reparto | i membri del Reparto e, per i Capi, le richieste di adesione |
+| guidone di Squadriglia | le Squadriglie e l'assegnazione dei membri |
+| calendario | uscite, campi, riunioni del Reparto |
+| album dei distintivi | il catalogo delle Specialità |
+| quaderno | il catalogo delle Competenze |
+| mappa arrotolata | le Tappe |
+| rubrica | i Maestri del proprio percorso |
+| tessera | il proprio profilo e l'uscita |
+| busta | la richiesta di adesione a un Reparto |
+| taccuino, fogli | appunti personali |
 
-Gli elementi decorativi servono esclusivamente a creare atmosfera.
+Cosa c'è sul tavolo dipende dalla situazione reale di chi guarda: chi non
+appartiene ancora a un Reparto trova la busta e non trova cassetta, guidone e
+calendario. Il tavolo racconta la situazione, non offre cassetti vuoti.
+
+Non tutti gli oggetti sono interattivi: matita, bussola e lampada a gas servono
+esclusivamente a creare atmosfera. La lampada è anche la sorgente di luce calda
+della scena: la luce ha una causa visibile.
 
 ---
 
@@ -126,7 +140,7 @@ L'utente può:
 
 # Calendario
 
-Il calendario deve mantenere il linguaggio fisico del tavolo.
+Il calendario è un oggetto del tavolo e deve mantenerne il linguaggio fisico.
 
 Può essere rappresentato come:
 
@@ -140,6 +154,8 @@ L'apertura deve mantenere visibile il tavolo sullo sfondo.
 
 # Profili
 
+Il proprio profilo si apre dalla **tessera** sul tavolo.
+
 Il profilo personale contiene il percorso dell'utente.
 
 All'interno del proprio Reparto l'utente può consultare i profili degli altri membri secondo i permessi previsti.
@@ -151,6 +167,10 @@ ORMA non deve diventare un social network.
 ---
 
 # Maestri
+
+I Maestri già associati al proprio percorso si consultano dalla **rubrica** sul
+tavolo. Si associano dalla carta della Specialità o della Competenza a cui si
+riferiscono, dove il legame ha un significato.
 
 Un Maestro può essere:
 
@@ -164,6 +184,9 @@ Non deve essere necessario creare un account per una persona che viene semplicem
 ---
 
 # Reparto
+
+Si raggiunge dalla **cassetta di Reparto** sul tavolo; le Squadriglie dal
+**guidone**, il calendario dal **calendario**.
 
 Il Reparto è un contesto dati associato all'account.
 
