@@ -1,6 +1,10 @@
 "use server";
 
 import {
+  getMaestroProfilo,
+  type MaestroProfiloData,
+} from "@/lib/queries/maestri";
+import {
   getAdesione,
   getCatalogo,
   getMaestri,
@@ -41,6 +45,10 @@ export async function loadMaestri(): Promise<MaestroVoce[]> {
 
 export async function loadProfilo(): Promise<ProfiloData | null> {
   return getProfilo();
+}
+
+export async function loadMaestroProfilo(): Promise<MaestroProfiloData | null> {
+  return getMaestroProfilo();
 }
 
 export async function loadAdesione(): Promise<AdesioneData> {

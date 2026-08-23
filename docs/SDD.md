@@ -282,6 +282,13 @@ Due categorie distinte, non unificate in un'unica tabella "persona astratta" per
 
 La ricerca globale Maestri è concettualmente separata dalla consultazione dei profili di Reparto: interroga solo i campi esplicitamente marcati ricercabili, mai l'intero profilo.
 
+Implementazione (Fase 8, [DEC-022](../.claude/DECISIONS.md#dec-022--ricerca-globale-maestri-tabella-dedicata-con-opt-in-esplicito-e-funzione-di-ricerca-security-definer)):
+
+- **`maestro_profilo`** (1:1 con `profiles`): `visibile` (opt-in esplicito, FR-15, default `false`), `regione`, `zona`, `localita`, `disponibile`. I campi di visibilità **non** stanno su `profiles`: una policy SELECT estesa lì esporrebbe l'intero profilo a chi legge la tabella, non solo i campi dichiarati ricercabili. RLS: il proprietario gestisce il proprio profilo; la lettura altrui è permessa solo quando `visibile` e con consenso attivo.
+- **`maestro_specialita`** (N:N verso `specialita`): le Specialità ufficiali che il Maestro dichiara di accompagnare.
+- **`cerca_maestri(p_specialita_id, p_regione, p_zona, p_solo_disponibili)`** — SECURITY DEFINER, stesso pattern di `find_profile_by_email` (FR-14): un utente non può leggere `profiles` altrui via RLS, quindi la ricerca espone solo le colonne dichiarate (nome, Specialità, Regione/Zona/Località, disponibilità), esclude sé stessi e i profili in attesa di consenso (DEC-010), e filtra sempre su `visibile = true`.
+- **UX**: la ricerca vive nella rubrica del tavolo (scheda "Cerca Maestri" accanto a "I miei Maestri", DEC-019); l'opt-in si gestisce dalla tessera (profilo/account). Da un risultato di ricerca si può associare il Maestro a una propria Specialità in corso.
+
 ## 20. Official Content Architecture
 
 Specialità/Competenze/Tappe sono tabelle singole, condivise da tutti i Reparti/utenti. Non esistono copie per Reparto o per utente. Ogni riga rappresenta il contenuto AGESCI ufficiale (nome, categoria, descrizione, obiettivi ufficiali), derivato dai PDF sorgente (§11). La modifica di queste tabelle non è esposta a nessun ruolo applicativo né in RLS né in UI: avviene esclusivamente tramite seed/migrazioni gestite dal proprietario del progetto ([DEC-008](../.claude/DECISIONS.md#dec-008--gestione-del-contenuto-ufficiale-specialit%C3%A0competenzetappe)).

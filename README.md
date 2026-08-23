@@ -30,7 +30,7 @@ foglio di carta. Chiudendo, si torna al tavolo.
 | Album dei distintivi                   | il catalogo delle Specialità                                        |
 | Quaderno                               | il catalogo delle Competenze                                        |
 | Mappa arrotolata                       | le Tappe                                                            |
-| Rubrica                                | i Maestri del proprio percorso                                      |
+| Rubrica                                | i Maestri del proprio percorso e la ricerca globale                 |
 | Tessera                                | profilo, dati dell'account, uscita                                  |
 | Busta                                  | la richiesta di adesione a un Reparto                               |
 
@@ -187,15 +187,16 @@ Il render loop è `on demand`: a tavolo fermo la GPU non lavora.
 
 ## Stato
 
-Completate le fasi 0–7: fondamenta, prototipo visivo, tavolo interattivo,
+Completate le fasi 0–8: fondamenta, prototipo visivo, tavolo interattivo,
 Specialità/Competenze/Tappe con dati reali, dati personali, autenticazione con
-consenso genitoriale, schema e funzionalità di Reparto. In seguito, un redesign
-trasversale ha riportato **ogni** funzionalità sul tavolo e riscritto la resa
-della scena ([DEC-019](.claude/DECISIONS.md), [DEC-020](.claude/DECISIONS.md), [DEC-021](.claude/DECISIONS.md)).
+consenso genitoriale, schema e funzionalità di Reparto, e ricerca globale dei
+Maestri con visibilità opt-in ([DEC-022](.claude/DECISIONS.md)). In seguito, un
+redesign trasversale ha riportato **ogni** funzionalità sul tavolo e riscritto la
+resa della scena ([DEC-019](.claude/DECISIONS.md), [DEC-020](.claude/DECISIONS.md), [DEC-021](.claude/DECISIONS.md)).
 
-Restano aperte le fasi 8–11: ricerca globale dei Maestri, archivio storico di
-Reparto, audit di sicurezza e accessibilità, QA di produzione. I limiti noti
-sono dichiarati in [`.claude/PROJECT.md`](.claude/PROJECT.md), non nascosti.
+Restano aperte le fasi 9–11: archivio storico di Reparto, audit di sicurezza e
+accessibilità, QA di produzione. I limiti noti sono dichiarati in
+[`.claude/PROJECT.md`](.claude/PROJECT.md), non nascosti.
 
 ---
 

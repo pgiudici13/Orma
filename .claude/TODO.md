@@ -429,7 +429,9 @@ Sessione dedicata aperta il 2026-08-23 su richiesta del proprietario del progett
 
 ---
 
-## Phase 8 — Maestri (ricerca globale)
+## Phase 8 — Maestri (ricerca globale) — **completata**
+
+Implementati entrambi i task con la migrazione `20260823110000_maestri_ricerca_globale.sql` ([DEC-022](DECISIONS.md#dec-022--ricerca-globale-maestri-tabella-dedicata-con-opt-in-esplicito-e-funzione-di-ricerca-security-definer)): tabella `maestro_profilo` (opt-in esplicito `visibile`, campi dichiarati ricercabili) + `maestro_specialita` (N:N col contenuto ufficiale), funzione `cerca_maestri` (SECURITY DEFINER, espone solo i campi dichiarati), ricerca nella rubrica del tavolo (seconda scheda accanto a "I miei Maestri"), opt-in gestito dalla tessera (profilo/account) e associazione del Maestro trovato a una propria Specialità in corso.
 
 ### P8-T01 — Ricerca globale Maestri (cross-Reparto)
 
@@ -437,6 +439,7 @@ Sessione dedicata aperta il 2026-08-23 su richiesta del proprietario del progett
 - **Dipendenze**: P4-T02, P6-T02.
 - **Criteri di completamento**: un Maestro che non ha attivato la visibilità globale non compare in ricerca.
 - **Test necessari**: test opt-in/opt-out di visibilità.
+- **Stato**: completato. `maestro_profilo` (1:1 con `profiles`, `visibile` default false = opt-in, campi `regione`/`zona`/`localita`/`disponibile`) e `maestro_specialita` (N:N verso `specialita`) con RLS (proprietario scrive il proprio profilo; la lettura altrui è possibile solo quando `visibile` e con consenso attivo). `cerca_maestri(...)` SECURITY DEFINER, stesso pattern di `find_profile_by_email` (P4-T02): espone solo i campi dichiarati, esclude sé stessi e i profili in attesa di consenso, filtra sempre su `visibile = true`. UI: scheda "Cerca Maestri" nella rubrica (`components/panel/surfaces/MaestriSurface.tsx`), sezione "Maestro di Specialità" nella tessera (`ImpostazioniSurface.tsx`), associazione da risultato a una propria Specialità in corso (`associaMaestroDaRicerca`). Test RLS in `tests/unit/rls/maestri.rls.test.ts` (si salta senza credenziali, pattern P3-T03): non visibile → non compare e riga illeggibile; dopo opt-in → compare con i soli campi dichiarati; il profilo altrui non è modificabile.
 
 ### P8-T02 — Filtri di ricerca (Specialità, Regione, Zona, disponibilità)
 
@@ -444,6 +447,9 @@ Sessione dedicata aperta il 2026-08-23 su richiesta del proprietario del progett
 - **Dipendenze**: P8-T01.
 - **Criteri di completamento**: filtri combinabili, risultati coerenti con permessi.
 - **Test necessari**: test query con combinazioni di filtri.
+- **Stato**: completato. Filtri combinabili nel form di ricerca (select Specialità dal catalogo ufficiale, input Regione/Zona, checkbox disponibilità) e nella funzione `cerca_maestri` (parametri `p_specialita_id`/`p_regione`/`p_zona`/`p_solo_disponibili`, match parziale su testo). La località si mostra nei risultati ma non filtra (SDD FR-14 non la elenca). Test: combinazioni coerenti/incoerenti coperte in `tests/unit/rls/maestri.rls.test.ts`; unit della superficie in `tests/unit/maestriSurface.test.tsx`.
+
+**Nota**: migrazione da applicare al progetto Supabase reale (via MCP Supabase, come le fasi precedenti); senza applicazione i test RLS si saltano da soli.
 
 ---
 

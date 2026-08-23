@@ -742,3 +742,42 @@ Con [DEC-019](#dec-019--ogni-funzionalità-è-un-oggetto-del-tavolo-le-rotte-res
 - Aprire un oggetto pesante mostra per un istante una riga di attesa (`SurfaceLoading`) invece del contenuto: accettabile, ed è il motivo per cui il calendario mostra subito gli eventi che l'oggetto porta già con sé.
 - La cache è per pagina: un aggiornamento fatto altrove non si riflette finché non si ricarica o non si scrive da qui.
 - I test unitari che montano una superficie devono simulare la Server Action: in jsdom non esiste una richiesta a cui agganciarsi (vedi `tests/unit/objectPanelCalendario.test.tsx`).
+
+---
+
+## DEC-022 — Ricerca globale Maestri: tabella dedicata con opt-in esplicito e funzione di ricerca SECURITY DEFINER
+
+### Status
+
+Accepted
+
+### Context
+
+La Fase 8 (P8-T01/T02, `TODO.md`) implementa FR-14/FR-15: ricerca globale dei Maestri di Specialità cross-Reparto, filtrabile per Specialità/Regione/Zona/disponibilità, con visibilità controllata esplicitamente dal Maestro. Il vincolo di prodotto è duplice (`docs/PERMISSIONS.md`, SDD §19, `CLAUDE.md` §6): la ricerca mostra **solo** le informazioni rese ricercabili, e l'opt-in è la condizione necessaria per comparire. Inoltre gli utenti non possono leggere `profiles` altrui via RLS (l'unica eccezione esistente era `find_profile_by_email`, P4-T02), quindi la ricerca non può fare join su `profiles` dal client.
+
+### Decision
+
+1. **Tabella dedicata `maestro_profilo`** (1:1 con `profiles`, `visibile boolean not null default false` = opt-in esplicito FR-15) con i soli campi dichiarati ricercabili: `regione`, `zona`, `localita`, `disponibile`. Niente colonne di visibilità su `profiles`: una policy SELECT estesa lì esporrebbe l'intero profilo (data di nascita, email del genitore) a chiunque, non solo i campi dichiarati — la separazione tabella è ciò che rende l'"interroga solo i campi marcati ricercabili" di SDD §19 una proprietà strutturale e non un'accortezza della query.
+2. **`maestro_specialita`** (N:N verso il contenuto ufficiale `specialita`): le Specialità che il Maestro dichiara di accompagnare. Riferimento al contenuto condiviso, mai duplicato (`CLAUDE.md`, "Official content must be reusable").
+3. **RLS**: il proprietario legge/gestisce il proprio profilo (`auth.uid() = profile_id` + `has_active_consent()`); la lettura altrui è permessa **solo** quando `visibile` e con consenso attivo. Le policy di scrittura restano `_own`.
+4. **`cerca_maestri(p_specialita_id, p_regione, p_zona, p_solo_disponibili)`**, SECURITY DEFINER, stesso pattern di `find_profile_by_email` (P4-T02): un utente non può leggere `profiles` altrui via RLS, quindi la ricerca passa da una funzione che espone **solo** le colonne dichiarate (nome, Specialità, Regione/Zona/Località, disponibilità), esclude sempre sé stessi e i profili `in_attesa` (DEC-010), e filtra sempre su `visibile = true` — l'opt-in è condizione necessaria, non un filtro dell'utente.
+5. **Filtri** (FR-14): Specialità, Regione, Zona, disponibilità — combinabili. La località si mostra nei risultati ma non filtra (SDD FR-14 non la elenca).
+6. **UX** ([DEC-019](#dec-019--ogni-funzionalità-è-un-oggetto-del-tavolo-le-rotte-restano-come-deep-link)): la ricerca vive nella **rubrica** (l'oggetto Maestri del tavolo) come seconda scheda accanto a "I miei Maestri"; l'opt-in si gestisce dalla **tessera** (profilo/account). Da un risultato di ricerca si può associare il Maestro a una propria Specialità **in corso** (chiusura del flusso "cerca → associa" di `docs/PRODUCT.md`); se non si ha quella Specialità attiva, si deve prima avviarla dal catalogo.
+
+### Why
+
+- L'opt-in e l'esposizione minima non sono richieste accessorie ma il vincolo di prodotto centrale della funzione (`PERMISSIONS.md`): senza la separazione fisica dei campi, qualsiasi errore futuro di policy su `profiles` tradirebbe il principio "solo le informazioni rese ricercabili".
+- La funzione SECURITY DEFINER replica il pattern già accettato e verificato di P4-T02: unica via per leggere dati di altri profili senza allargare la RLS di `profiles`.
+- La ricerca nella rubrica evita un oggetto nuovo sul tavolo per una funzione che è la naturale estensione della rubrica stessa; la tessera è già la superficie "profilo/account" ([DEC-019](#dec-019--ogni-funzionalità-è-un-oggetto-del-tavolo-le-rotte-restano-come-deep-link)).
+
+### Alternatives
+
+- **Colonne di opt-in su `profiles`** con una policy SELECT estesa: più semplice, ma qualunque lettura di chi fa opt-in esporrebbe l'intero profilo — viola SDD §19. Scartata.
+- **Vista `security_invoker`** per la ricerca: il join con `profiles` fallirebbe comunque sulla RLS di `profiles`; e una vista `security_definer` equivale alla funzione, con meno controllo sui parametri. Scartata.
+
+### Consequences
+
+- `supabase/migrations/20260823110000_maestri_ricerca_globale.sql` da applicare al progetto reale (come tutte le migrazioni, tramite MCP Supabase).
+- L'associazione per **email esatta** (`assignMaestroInterno`, P4-T02) resta: è la via per associare chi non è (ancora) ricercabile; `associaMaestroDaRicerca` è la via dalla ricerca.
+- Test RLS in `tests/unit/rls/maestri.rls.test.ts` (pattern `personalTables.rls.test.ts`, si saltano senza credenziali): opt-in/opt-out, esposizione solo campi dichiarati, filtri combinabili, immodificabilità del profilo altrui.
+- La tessera mostra la sezione "Maestro di Specialità" a chiunque: un E/G o un Capo può essere Maestro (SDD §6), non serve un ruolo dedicato.

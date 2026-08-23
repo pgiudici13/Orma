@@ -172,6 +172,14 @@ I Maestri già associati al proprio percorso si consultano dalla **rubrica** sul
 tavolo. Si associano dalla carta della Specialità o della Competenza a cui si
 riferiscono, dove il legame ha un significato.
 
+La rubrica ha una seconda faccia, **Cerca Maestri**: la ricerca globale di
+Maestri di Specialità anche fuori dal proprio Reparto, con filtri per
+Specialità, Regione, Zona e disponibilità. Compare solo chi ha scelto di essere
+ricercabile (opt-in, `docs/PERMISSIONS.md`), con le sole informazioni dichiarate
+— la ricerca non è un elenco di profili. Chi si rende ricercabile lo gestisce
+dalla **tessera** (sezione "Maestro di Specialità"); da un risultato di ricerca
+si può associare il Maestro a una propria Specialità in corso.
+
 Un Maestro può essere:
 
 1. un utente ORMA;
