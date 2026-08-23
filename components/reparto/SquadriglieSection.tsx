@@ -40,7 +40,7 @@ export function SquadriglieSection({
           </h2>
           <p
             className="font-sans text-xs mt-1"
-            style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+            style={{ color: "var(--ink-muted-strong)" }}
           >
             {squadriglie.length} squadriglie attive • {members.length} membri totali
           </p>
@@ -79,7 +79,7 @@ export function SquadriglieSection({
             <label
               htmlFor="nome-nuova-sq"
               className="block text-[10px] uppercase tracking-wider font-sans mb-1"
-              style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+              style={{ color: "var(--ink-muted-strong)" }}
             >
               Nome Squadriglia (es. Aquile, Volpi, Gabbiani)
             </label>
@@ -189,7 +189,7 @@ export function SquadriglieSection({
                     <p
                       className="text-xs font-sans mt-0.5"
                       style={{
-                        color: "color-mix(in srgb, var(--ink) 60%, transparent)",
+                        color: "var(--ink-muted)",
                       }}
                     >
                       {sqMembers.length} {sqMembers.length === 1 ? "membro" : "membri"}
@@ -235,7 +235,7 @@ export function SquadriglieSection({
                   <p
                     className="text-xs font-sans italic py-2"
                     style={{
-                      color: "color-mix(in srgb, var(--ink) 55%, transparent)",
+                      color: "var(--ink-muted-soft)",
                     }}
                   >
                     Nessun membro assegnato a questa Squadriglia.
@@ -260,7 +260,7 @@ export function SquadriglieSection({
                         <p
                           className="text-[11px] font-sans mt-0.5"
                           style={{
-                            color: "color-mix(in srgb, var(--ink) 65%, transparent)",
+                            color: "var(--ink-muted)",
                           }}
                         >
                           {m.specialitaCompletate.length} Specialità
@@ -329,7 +329,7 @@ export function SquadriglieSection({
               <p
                 className="text-xs font-sans mt-0.5"
                 style={{
-                  color: "color-mix(in srgb, var(--ink) 60%, transparent)",
+                  color: "var(--ink-muted)",
                 }}
               >
                 {unassignedMembers.length} {unassignedMembers.length === 1 ? "membro" : "membri"} da assegnare
@@ -356,7 +356,7 @@ export function SquadriglieSection({
                     <p
                       className="text-[11px] font-sans mt-0.5"
                       style={{
-                        color: "color-mix(in srgb, var(--ink) 65%, transparent)",
+                        color: "var(--ink-muted)",
                       }}
                     >
                       {m.specialitaCompletate.length} Specialità

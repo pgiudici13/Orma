@@ -199,6 +199,7 @@ Da chiudere prima della Fase 2 (tavolo interattivo), che introduce la prima logi
 
 - Le soglie del budget di performance 3D (§10 SDD) sono verificate automaticamente: la scena espone i contatori del renderer su `window.__ormaPerf` **solo in sviluppo** e l'E2E le controlla.
 - Playwright richiede `npx playwright install chromium` sulle macchine dove si eseguono gli E2E, e i flag SwiftShader configurati in `playwright.config.ts` per avere WebGL in headless.
+- **Estensione P10-T02 (Fase 10)**: `@axe-core/playwright` aggiunta come devDependency per l'audit di accessibilità (`tests/e2e/accessibility.spec.ts`) sulle pagine pubbliche e su ogni pannello del tavolo (via `/tavolo-dev`, nessuna credenziale richiesta, stesso pattern di `tableInteraction.spec.ts`). La regola `color-contrast` di axe è disattivata: non interpreta correttamente `color-mix()` (vedi `.claude/CORRECTIONS.md`) — il contrasto reale va verificato per campionamento pixel quando serve, non solo fidandosi del tool.
 
 ---
 
@@ -706,6 +707,7 @@ Rispetta i requisiti di `docs/PERMISSIONS.md` (privacy by default, isolamento mu
 
 - Pagina `/reparto` con tab Membri, Squadriglie e Calendario.
 - Oggetto `calendario` sul tavolo scout popolato dinamicamente con i dati reali del Reparto dell'utente.
+- **Corretto in Fase 10 (P10-T01, `.claude/CORRECTIONS.md`)**: l'estensione di `profiles_select_own` qui descritta concedeva l'intera riga `profiles` (inclusi `data_nascita`/`genitore_email`) a chiunque appartenesse allo stesso Reparto — la RLS filtra righe, non colonne, quindi contraddiceva il punto 1 di questa stessa decisione. Sostituita da `stesso_reparto_attivo()`/`membri_reparto()` (SECURITY DEFINER, `20260823172537_profiles_reparto_visibility_fix.sql`), che espongono solo booleano/colonne dichiarate, stesso pattern di DEC-022.
 
 
 ---

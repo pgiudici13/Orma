@@ -293,7 +293,7 @@ function ElencoAttivita({
             <span
               className="ml-2 font-sans text-[11px]"
               style={{
-                color: "color-mix(in srgb, var(--ink) 55%, transparent)",
+                color: "var(--ink-muted-soft)",
               }}
             >
               {voce.luogo.nome}
@@ -508,7 +508,7 @@ function DettaglioCampi({
             <dt
               className="text-[11px] tracking-wide uppercase"
               style={{
-                color: "color-mix(in srgb, var(--ink) 55%, transparent)",
+                color: "var(--ink-muted-soft)",
               }}
             >
               Quando
@@ -522,7 +522,7 @@ function DettaglioCampi({
         ) : null}
         <dt
           className="text-[11px] tracking-wide uppercase"
-          style={{ color: "color-mix(in srgb, var(--ink) 55%, transparent)" }}
+          style={{ color: "var(--ink-muted-soft)" }}
         >
           Luogo
         </dt>
@@ -532,7 +532,7 @@ function DettaglioCampi({
             <dt
               className="text-[11px] tracking-wide uppercase"
               style={{
-                color: "color-mix(in srgb, var(--ink) 55%, transparent)",
+                color: "var(--ink-muted-soft)",
               }}
             >
               Descrizione
@@ -547,7 +547,7 @@ function DettaglioCampi({
             <dt
               className="text-[11px] tracking-wide uppercase"
               style={{
-                color: "color-mix(in srgb, var(--ink) 55%, transparent)",
+                color: "var(--ink-muted-soft)",
               }}
             >
               Programma
@@ -562,7 +562,7 @@ function DettaglioCampi({
             <dt
               className="text-[11px] tracking-wide uppercase"
               style={{
-                color: "color-mix(in srgb, var(--ink) 55%, transparent)",
+                color: "var(--ink-muted-soft)",
               }}
             >
               Materiale
@@ -577,7 +577,7 @@ function DettaglioCampi({
             <dt
               className="text-[11px] tracking-wide uppercase"
               style={{
-                color: "color-mix(in srgb, var(--ink) 55%, transparent)",
+                color: "var(--ink-muted-soft)",
               }}
             >
               Note
@@ -865,7 +865,7 @@ function FormAttivita({
           </select>
           <span
             className="text-[11px]"
-            style={{ color: "color-mix(in srgb, var(--ink) 55%, transparent)" }}
+            style={{ color: "var(--ink-muted-soft)" }}
           >
             Tieni premuto Ctrl (⌘ su Mac) per sceglierne più d&apos;una.
           </span>
@@ -901,7 +901,7 @@ function FormAttivita({
             type="button"
             onClick={onChiuso}
             className="cursor-pointer self-start font-sans text-[11px] tracking-wide"
-            style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+            style={{ color: "var(--ink-muted)" }}
           >
             Annulla
           </button>

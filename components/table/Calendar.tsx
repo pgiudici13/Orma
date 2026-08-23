@@ -25,7 +25,7 @@ export function Calendar({
       />
       <p
         className="font-sans text-[10px] tracking-[0.14em] uppercase"
-        style={{ color: "color-mix(in srgb, var(--ink) 65%, transparent)" }}
+        style={{ color: "var(--ink-muted)" }}
       >
         {month}
       </p>
