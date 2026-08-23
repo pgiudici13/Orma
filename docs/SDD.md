@@ -273,6 +273,8 @@ Il Reparto è un contesto dati associato all'account, non una dashboard condivis
 
 Un utente appartiene, nella fase iniziale, a un solo Reparto attivo (assunzione semplificatrice; multi-Reparto per singolo utente è fuori scope salvo richiesta futura esplicita — non menzionato in nessun documento di prodotto).
 
+**Archivio storico** (Fase 9, [DEC-023](../.claude/DECISIONS.md#dec-023--archivio-di-reparto-memoria-storica-separata-dal-calendario-metadati-in-postgres-e-file-in-bucket-privato)): `luogo`, `uscita`, `campo` scoped a `reparto_id` con join N:N a `profiles`/`squadriglia` (FK reali); `documento_archivio` per i metadati di foto e documenti (polymorphic `entita_tipo`/`entita_id`, come `nota`), con i file nel bucket privato `archivio` — percorso `{reparto_id}/{entita_tipo}/{entita_id}/{file}`, policy di Storage coerenti con la RLS di Reparto (lettura per i membri, scrittura per i Capi), nessun bucket pubblico per contenuti con minori (§17). L'archivio è separato dal calendario `evento` (§4.7): è la memoria storica, non gli eventi futuri. In UI è il **baule** sul tavolo (DEC-019), con navigazione Campo→Luogo→Partecipanti→Squadriglie→Attività→Foto→Documenti (`docs/DATA_MODEL.md`).
+
 ## 19. Maestro Architecture
 
 Due categorie distinte, non unificate in un'unica tabella "persona astratta" per evitare over-engineering prematuro:

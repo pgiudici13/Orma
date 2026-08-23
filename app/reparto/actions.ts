@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-async function getAuthenticatedUserAndProfile() {
+export async function getAuthenticatedUserAndProfile() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -46,7 +46,10 @@ export async function creaSquadriglia(formData: FormData) {
     nome,
   });
 
-  if (error) throw new Error(`Errore nella creazione della Squadriglia: ${error.message}`);
+  if (error)
+    throw new Error(
+      `Errore nella creazione della Squadriglia: ${error.message}`,
+    );
   revalidatePath("/reparto");
 }
 
@@ -138,7 +141,8 @@ export async function creaEvento(formData: FormData) {
     descrizione,
   });
 
-  if (error) throw new Error(`Errore nella creazione dell'evento: ${error.message}`);
+  if (error)
+    throw new Error(`Errore nella creazione dell'evento: ${error.message}`);
   revalidatePath("/reparto");
   revalidatePath("/");
 }
@@ -172,7 +176,8 @@ export async function modificaEvento(eventoId: string, formData: FormData) {
     })
     .eq("id", eventoId);
 
-  if (error) throw new Error(`Errore nella modifica dell'evento: ${error.message}`);
+  if (error)
+    throw new Error(`Errore nella modifica dell'evento: ${error.message}`);
   revalidatePath("/reparto");
   revalidatePath("/");
 }
@@ -185,7 +190,8 @@ export async function eliminaEvento(eventoId: string) {
 
   const { error } = await supabase.from("evento").delete().eq("id", eventoId);
 
-  if (error) throw new Error(`Errore nell'eliminazione dell'evento: ${error.message}`);
+  if (error)
+    throw new Error(`Errore nell'eliminazione dell'evento: ${error.message}`);
   revalidatePath("/reparto");
   revalidatePath("/");
 }

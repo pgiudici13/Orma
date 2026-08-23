@@ -25,7 +25,8 @@ export type SceneObjectKind =
   | "mappa"
   | "rubrica"
   | "tessera"
-  | "busta";
+  | "busta"
+  | "baule";
 
 /**
  * Gli oggetti decorativi/di navigazione hanno id letterali fissi. Le carte di
@@ -89,6 +90,7 @@ export const KIND_LABEL: Record<SceneObjectKind, string> = {
   rubrica: "Maestri",
   tessera: "Impostazioni",
   busta: "Reparto",
+  baule: "Archivio",
 };
 
 export const SCENE_OBJECTS: readonly SceneObject[] = [
@@ -236,6 +238,15 @@ export const SCENE_OBJECTS: readonly SceneObject[] = [
     spot: [1.0, 0.42],
     tilt: 0,
   },
+  {
+    id: "baule-archivio",
+    kind: "baule",
+    title: "Baule dell'Archivio",
+    label: KIND_LABEL.baule,
+    interactive: true,
+    spot: [1.52, -0.62],
+    tilt: -8,
+  },
 ] as const;
 
 export const INTERACTIVE_OBJECTS = SCENE_OBJECTS.filter(
@@ -357,6 +368,7 @@ const REPARTO_KINDS: ReadonlySet<SceneObjectKind> = new Set([
   "cassetta",
   "guidone",
   "calendario",
+  "baule",
 ]);
 
 /** Lista completa da mostrare sul tavolo, dato il contesto dell'utente. */

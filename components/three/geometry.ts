@@ -221,6 +221,27 @@ export const CASSETTA_STRAP_GEOMETRY = new BoxGeometry(
   0.004,
 );
 
+const BAULE_SIZE = { width: 0.52, height: 0.2, depth: 0.34 } as const;
+
+/** Corpo del baule dell'archivio: cassa di legno più grande della cassetta. */
+export const BAULE_BODY_GEOMETRY = roundedPlate(
+  { width: BAULE_SIZE.width, height: 0.15, depth: BAULE_SIZE.depth },
+  0.01,
+);
+
+/** Coperchio arcuato, appena sollevato sul retro. */
+export const BAULE_LID_GEOMETRY = roundedPlate(
+  {
+    width: BAULE_SIZE.width + 0.016,
+    height: 0.07,
+    depth: BAULE_SIZE.depth + 0.016,
+  },
+  0.012,
+);
+
+/** Fascia di ottone che regge il coperchio. */
+export const BAULE_STRAP_GEOMETRY = new BoxGeometry(0.05, 0.17, 0.006);
+
 const GUIDONE_SIZE = { width: 0.44, height: 0.012, depth: 0.2 } as const;
 
 /**
@@ -363,6 +384,7 @@ export const OBJECT_SIZE: Record<SceneObjectKind, ObjectSize> = {
   },
   cassetta: CASSETTA_SIZE,
   guidone: GUIDONE_SIZE,
+  baule: BAULE_SIZE,
   album: ALBUM_SIZE,
   quaderno: QUADERNO_SIZE,
   mappa: MAPPA_SIZE,

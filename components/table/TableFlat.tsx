@@ -41,6 +41,7 @@ const WIDE_LAYOUT_DECORATIVE: Record<string, Placement> = {
   "busta-adesione": { top: "88%", left: "76%", rotate: 4 },
   "cassetta-reparto": { top: "30%", left: "86%", rotate: -6 },
   guidone: { top: "58%", left: "84%", rotate: 10 },
+  "baule-archivio": { top: "38%", left: "72%", rotate: -8 },
   matita: { top: "70%", left: "44%", rotate: -8 },
   bussola: { top: "44%", left: "88%", rotate: 0 },
 };
@@ -73,6 +74,7 @@ const NARROW_DECORATIVE_ORDER = [
   "taccuino",
   "foglio",
   "tessera",
+  "baule-archivio",
 ] as const;
 
 function ObjectVisual({ object }: { object: SceneObject }) {
@@ -92,6 +94,7 @@ function ObjectVisual({ object }: { object: SceneObject }) {
     case "bussola":
       return <Compass className="w-20" />;
     case "cassetta":
+    case "baule":
       return <Plaque label={object.label} title={object.title} />;
     case "album":
     case "mappa":

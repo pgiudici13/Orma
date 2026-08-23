@@ -781,3 +781,41 @@ La Fase 8 (P8-T01/T02, `TODO.md`) implementa FR-14/FR-15: ricerca globale dei Ma
 - L'associazione per **email esatta** (`assignMaestroInterno`, P4-T02) resta: è la via per associare chi non è (ancora) ricercabile; `associaMaestroDaRicerca` è la via dalla ricerca.
 - Test RLS in `tests/unit/rls/maestri.rls.test.ts` (pattern `personalTables.rls.test.ts`, si saltano senza credenziali): opt-in/opt-out, esposizione solo campi dichiarati, filtri combinabili, immodificabilità del profilo altrui.
 - La tessera mostra la sezione "Maestro di Specialità" a chiunque: un E/G o un Capo può essere Maestro (SDD §6), non serve un ruolo dedicato.
+
+---
+
+## DEC-023 — Archivio di Reparto: memoria storica separata dal calendario, metadati in Postgres e file in bucket privato
+
+### Status
+
+Accepted
+
+### Context
+
+La Fase 9 (P9-T01/T02/T03, FR-19) implementa l'archivio storico di Reparto: uscite, campi, luoghi, fotografie e documenti, navigabili come da `docs/DATA_MODEL.md` (Campo → Luogo → Partecipanti → Squadriglie → Attività → Foto → Documenti). Vincoli: `docs/DATA_MODEL.md` modella Uscita, Campo e Luogo come entità distinte con join di partecipanti e Squadriglie; SDD §17 impone metadati in Postgres e file in Storage, con nessun bucket pubblico per contenuti che includano minori.
+
+### Decision
+
+1. **Schema storico distinto dal calendario**: tabelle `luogo`, `uscita`, `campo` (scoped a `reparto_id`) + quattro join con FK reali (`uscita_partecipante`, `campo_partecipante`, `uscita_squadriglia`, `campo_squadriglia`). L'archivio **non** è collegato a `evento` (P7-T03): il calendario guarda avanti, l'archivio è la memoria — nessun collegamento obbligato tra i due.
+2. **Metadati in Postgres, file in Storage** (SDD §17): `documento_archivio` (reparto_id, tipo `foto`/`documento`, entita_tipo `uscita`/`campo`/`luogo` + entita_id, file_path, nome_file) — polymorphic come `nota`, nessuna FK diretta sul target.
+3. **RLS coerente con DEC-018**: lettura per i membri del Reparto con consenso attivo; scrittura (insert/update/delete) per i Capi del Reparto o admin globale. Le policy dei join derivano la visibilità dal genitore (l'uscita/campo a cui appartengono), perché la riga di join non ha un reparto proprio — stesso pattern di `maestro_specialita`.
+4. **Storage privato**: bucket `archivio` (`public = false`), percorso `archivio/{reparto_id}/{entita_tipo}/{entita_id}/{file}`. Le policy su `storage.objects` estraggono il Reparto dal percorso (`storage.foldername(name)[1]`); il cast a uuid è protetto da una regex per non far esplodere la policy su percorsi malformati. Lettura per i membri, scrittura per i Capi. Nessun URL pubblico: la UI apre i file con URL firmati a breve scadenza generati dalle query.
+5. **UX** ([DEC-019](#dec-019--ogni-funzionalità-è-un-oggetto-del-tavolo-le-rotte-restano-come-deep-link)): l'archivio è il **baule** sul tavolo — oggetto nuovo, distinto dalla cassetta (che tiene i membri); la superficie naviga per ricordi (scaffale → dettaglio), con azioni di scrittura riservate ai Capi.
+6. **Cancellazione pulita**: eliminare un'uscita/campo rimuove anche metadati e file dei suoi documenti (l'assenza di FK polymorphic lascerebbe orfani); `luogo` è `on delete set null` sulle uscite/campi.
+
+### Why
+
+- La separazione calendario/archivio rispetta i documenti di prodotto: il calendario è FR-18 (eventi a cui si ha accesso), l'archivio è FR-19 (consultazione storica) — due superfici, due modelli.
+- I metadati in Postgres permettono RLS granulare (per chi, per cosa) che Storage da solo non offre; il bucket privato è l'unico modo di conservare fotografie con minori (SDD §17).
+- Il baule estende il vincolo DEC-019 senza forzare un oggetto esistente a due ruoli: la cassetta è il Reparto vivo, il baule la sua memoria.
+
+### Alternatives
+
+- **Estendere `evento`** con luogo/partecipanti/file: mescolerebbe due cicli di vita diversi (un evento si sposta, un ricordo no) e renderebbe il calendario pesante dei dati storici. Scartata.
+- **Bucket pubblico** con nomi difficili da indovinare: viola esplicitamente SDD §17 per contenuti con minori. Scartata.
+
+### Consequences
+
+- `supabase/migrations/20260823120000_archivio_reparto.sql` (tabelle + RLS + bucket e policy Storage) da applicare al progetto reale.
+- Test RLS in `tests/unit/rls/archivio.rls.test.ts` (percorso di diniego per utenti `eg`, incluse le policy Storage — stesso limite già dichiarato per l'isolamento cross-Reparto dei Capi, vedi `.claude/CORRECTIONS.md`); l'integrità referenziale (P9-T01) è garantita dai vincoli FK dello schema e va verificata via introspezione SQL, non automatizzabile via client con utenti non-Capo.
+- Unit della superficie in `tests/unit/archivioSurface.test.tsx` (scaffale, dettaglio, permessi).

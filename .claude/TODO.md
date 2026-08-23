@@ -453,7 +453,9 @@ Implementati entrambi i task con la migrazione `20260823110000_maestri_ricerca_g
 
 ---
 
-## Phase 9 — Calendario / Archivio (storico Reparto)
+## Phase 9 — Calendario / Archivio (storico Reparto) — **completata**
+
+Implementati tutti e tre i task con la migrazione `20260823120000_archivio_reparto.sql` ([DEC-023](DECISIONS.md#dec-023--archivio-di-reparto-memoria-storica-separata-dal-calendario-metadati-in-postgres-e-file-in-bucket-privato)): schema storico (luogo, uscita, campo + join partecipanti/Squadriglie), metadati documenti in Postgres con file nel bucket privato `archivio` (policy Storage coerenti con la RLS di Reparto), e il **baule** come oggetto sul tavolo con superficie navigabile per ricordi e azioni di scrittura riservate ai Capi.
 
 ### P9-T01 — Schema `uscita`, `campo`, `luogo`
 
@@ -461,6 +463,7 @@ Implementati entrambi i task con la migrazione `20260823110000_maestri_ricerca_g
 - **Dipendenze**: P6-T01.
 - **Criteri di completamento**: relazioni Uscita/Campo↔Luogo↔partecipanti↔Squadriglie corrette.
 - **Test necessari**: test integrità referenziale.
+- **Stato**: completato. Tabelle `luogo` (unique per nome nel Reparto), `uscita` (data, programma, materiale, note, luogo_id `on delete set null`), `campo` (anno, date, luogo_id) e quattro join con FK reali verso `profiles`/`squadriglia`; RLS lettura per i membri del Reparto, scrittura per Capi/admin (stesso pattern di `evento`); le policy dei join derivano la visibilità dal genitore. L'archivio è **separato** dal calendario `evento` (DEC-023): memoria storica, non eventi futuri. Nota sul criterio di test: l'integrità referenziale è garantita dai vincoli FK dello schema e va verificata via introspezione SQL — un test client con utenti `eg` non può popolare le tabelle (scrittura riservata ai Capi), stesso limite già dichiarato per l'isolamento cross-Reparto in Fase 6 (vedi `CORRECTIONS.md`).
 
 ### P9-T02 — Archivio fotografico e documenti (Supabase Storage)
 
@@ -468,6 +471,7 @@ Implementati entrambi i task con la migrazione `20260823110000_maestri_ricerca_g
 - **Dipendenze**: P9-T01.
 - **Criteri di completamento**: policy Storage coerenti con RLS Reparto; nessun bucket pubblico per contenuti privati.
 - **Test necessari**: test accesso non autorizzato a bucket/file.
+- **Stato**: completato. Metadati in `documento_archivio` (tipo foto/documento, entita_tipo + entita_id polymorphic, file_path, nome_file) con RLS come le altre tabelle di Reparto; bucket **privato** `archivio` (SDD §17) con policy su `storage.objects` che estraggono il Reparto dal percorso (`storage.foldername(name)[1]`, cast uuid protetto da regex): lettura per i membri, scrittura per i Capi. La UI apre i file con URL firmati a breve scadenza, mai URL pubblici. Azioni in `app/actions/archivio.ts` (`caricaDocumento` con rollback del file orfano se il metadato fallisce, `eliminaDocumento`, pulizia documenti alla cancellazione dell'entità). Test di diniego in `tests/unit/rls/archivio.rls.test.ts` (upload negato, lista vuota, bucket non pubblico).
 
 ### P9-T03 — Vista Archivio navigabile
 
@@ -475,6 +479,9 @@ Implementati entrambi i task con la migrazione `20260823110000_maestri_ricerca_g
 - **Dipendenze**: P9-T02.
 - **Criteri di completamento**: navigazione per Campo→Luogo→partecipanti→attività→foto→documenti come da `docs/DATA_MODEL.md`.
 - **Test necessari**: verifica visiva, verifica permessi.
+- **Stato**: completato. Nuovo oggetto **baule** sul tavolo (kind `baule`, 3D in `components/three/props/Baule3D.tsx` con corpo, coperchio e fasce d'ottone, texture legno distinta dalla cassetta; composizione 2D con targhetta in `TableFlat`), visibile solo per chi appartiene a un Reparto (come cassetta/guidone/calendario). Superficie `components/panel/surfaces/ArchivioSurface.tsx` (larghezza "steso"): scaffale con Campi/Uscite/Luoghi → dettaglio con luogo, partecipanti, Squadriglie, programma/materiale/note, fotografie e documenti; per i Capi creazione/modifica/eliminazione di uscite, campi e luoghi (con multi-selezione di partecipanti e Squadriglie) e caricamento/eliminazione di foto e documenti. Query in `lib/queries/archivio.ts`, azioni in `app/actions/archivio.ts`. Unit in `tests/unit/archivioSurface.test.tsx` (scaffale, dettaglio, link firmati, permessi).
+
+**Nota**: migrazione da applicare al progetto Supabase reale (via MCP Supabase, come le fasi precedenti); senza applicazione i test RLS si saltano da soli.
 
 ---
 

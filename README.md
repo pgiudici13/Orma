@@ -21,22 +21,23 @@ di legno e una tessera. Aprire un oggetto lo porta in primo piano, la camera si
 avvicina, il tavolo resta visibile ma sfocato, e il contenuto compare su un
 foglio di carta. Chiudendo, si torna al tavolo.
 
-| Oggetto                                | Cosa apre                                                           |
-| -------------------------------------- | ------------------------------------------------------------------- |
-| Carte di Specialità, Competenza, Tappa | il percorso in corso: contenuto ufficiale, progresso, note, Maestro |
-| Cassetta di Reparto                    | i membri del Reparto e, per i Capi, le richieste di adesione        |
-| Guidone di Squadriglia                 | le Squadriglie e l'assegnazione dei membri                          |
-| Calendario                             | uscite, campi e riunioni del Reparto                                |
-| Album dei distintivi                   | il catalogo delle Specialità                                        |
-| Quaderno                               | il catalogo delle Competenze                                        |
-| Mappa arrotolata                       | le Tappe                                                            |
-| Rubrica                                | i Maestri del proprio percorso e la ricerca globale                 |
-| Tessera                                | profilo, dati dell'account, uscita                                  |
-| Busta                                  | la richiesta di adesione a un Reparto                               |
+| Oggetto                                | Cosa apre                                                               |
+| -------------------------------------- | ----------------------------------------------------------------------- |
+| Carte di Specialità, Competenza, Tappa | il percorso in corso: contenuto ufficiale, progresso, note, Maestro     |
+| Cassetta di Reparto                    | i membri del Reparto e, per i Capi, le richieste di adesione            |
+| Guidone di Squadriglia                 | le Squadriglie e l'assegnazione dei membri                              |
+| Calendario                             | uscite, campi e riunioni del Reparto                                    |
+| Album dei distintivi                   | il catalogo delle Specialità                                            |
+| Quaderno                               | il catalogo delle Competenze                                            |
+| Mappa arrotolata                       | le Tappe                                                                |
+| Rubrica                                | i Maestri del proprio percorso e la ricerca globale                     |
+| Baule                                  | l'archivio storico del Reparto: campi, uscite, luoghi, foto e documenti |
+| Tessera                                | profilo, dati dell'account, uscita                                      |
+| Busta                                  | la richiesta di adesione a un Reparto                                   |
 
 Cosa c'è sul tavolo dipende dalla situazione reale di chi guarda: chi non
-appartiene ancora a un Reparto trova la busta, e non trova cassetta, guidone e
-calendario. Matita, bussola e lampada a gas non si aprono: servono all'atmosfera
+appartiene ancora a un Reparto trova la busta, e non trova cassetta, guidone,
+calendario e baule. Matita, bussola e lampada a gas non si aprono: servono all'atmosfera
 — la lampada è anche la sorgente di luce calda della scena, così la luce ha una
 causa visibile.
 
@@ -187,16 +188,16 @@ Il render loop è `on demand`: a tavolo fermo la GPU non lavora.
 
 ## Stato
 
-Completate le fasi 0–8: fondamenta, prototipo visivo, tavolo interattivo,
+Completate le fasi 0–9: fondamenta, prototipo visivo, tavolo interattivo,
 Specialità/Competenze/Tappe con dati reali, dati personali, autenticazione con
-consenso genitoriale, schema e funzionalità di Reparto, e ricerca globale dei
-Maestri con visibilità opt-in ([DEC-022](.claude/DECISIONS.md)). In seguito, un
-redesign trasversale ha riportato **ogni** funzionalità sul tavolo e riscritto la
-resa della scena ([DEC-019](.claude/DECISIONS.md), [DEC-020](.claude/DECISIONS.md), [DEC-021](.claude/DECISIONS.md)).
+consenso genitoriale, schema e funzionalità di Reparto, ricerca globale dei
+Maestri con visibilità opt-in ([DEC-022](.claude/DECISIONS.md)) e archivio
+storico di Reparto ([DEC-023](.claude/DECISIONS.md)). In seguito, un redesign
+trasversale ha riportato **ogni** funzionalità sul tavolo e riscritto la resa
+della scena ([DEC-019](.claude/DECISIONS.md), [DEC-020](.claude/DECISIONS.md), [DEC-021](.claude/DECISIONS.md)).
 
-Restano aperte le fasi 9–11: archivio storico di Reparto, audit di sicurezza e
-accessibilità, QA di produzione. I limiti noti sono dichiarati in
-[`.claude/PROJECT.md`](.claude/PROJECT.md), non nascosti.
+Restano aperte le fasi 10–11: audit di sicurezza e accessibilità, QA di
+produzione. I limiti noti sono dichiarati in [`.claude/PROJECT.md`](.claude/PROJECT.md), non nascosti.
 
 ---
 

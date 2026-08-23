@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { SceneObject, SceneObjectKind } from "@/lib/scene/objects";
 import { AdesioneSurface } from "./AdesioneSurface";
+import { ArchivioSurface } from "./ArchivioSurface";
 import { CalendarioSurface } from "./CalendarioSurface";
 import { CardSurface } from "./CardSurface";
 import { CatalogoSurface } from "./CatalogoSurface";
@@ -48,6 +49,7 @@ const SURFACES: Partial<Record<SceneObjectKind, Surface>> = {
   quaderno: { component: CatalogoSurface, width: "steso" },
   mappa: { component: CatalogoSurface, width: "steso" },
   rubrica: { component: MaestriSurface, width: "foglio" },
+  baule: { component: ArchivioSurface, width: "steso" },
   tessera: { component: ImpostazioniSurface, width: "foglio" },
   busta: { component: AdesioneSurface, width: "foglio" },
 };

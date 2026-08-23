@@ -1,5 +1,6 @@
 "use server";
 
+import { getArchivio, type ArchivioData } from "@/lib/queries/archivio";
 import {
   getMaestroProfilo,
   type MaestroProfiloData,
@@ -49,6 +50,10 @@ export async function loadProfilo(): Promise<ProfiloData | null> {
 
 export async function loadMaestroProfilo(): Promise<MaestroProfiloData | null> {
   return getMaestroProfilo();
+}
+
+export async function loadArchivio(): Promise<ArchivioData> {
+  return getArchivio();
 }
 
 export async function loadAdesione(): Promise<AdesioneData> {

@@ -910,6 +910,61 @@ export function getCassettaTexture(): CanvasTexture {
   });
 }
 
+/** Legno del baule dell'archivio: assi orizzontali, più chiaro e usurato della cassetta. */
+export function getBauleTexture(): CanvasTexture {
+  return createTexture("baule", 256, 256, (ctx, w, h) => {
+    const base = mix(
+      materialColor("--wood-base"),
+      materialColor("--wood-dark"),
+      0.2,
+    );
+    const dark = materialColor("--wood-dark");
+    const random = seededRandom(424242);
+
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, w, h);
+
+    // Assi orizzontali, come listelli inchiodati sul coperchio.
+    const boards = 5;
+    for (let i = 1; i < boards; i += 1) {
+      ctx.strokeStyle = mix(base, dark, 0.7);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, (i * h) / boards);
+      ctx.lineTo(w, (i * h) / boards);
+      ctx.stroke();
+    }
+
+    // Venatura orizzontale, usura e piccoli segni del tempo.
+    for (let i = 0; i < 110; i += 1) {
+      const y = random() * h;
+      ctx.strokeStyle = mix(base, dark, 0.15 + random() * 0.35);
+      ctx.globalAlpha = 0.2 + random() * 0.3;
+      ctx.lineWidth = 0.6 + random() * 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x <= w; x += 12) {
+        ctx.lineTo(x, y + Math.sin(x / 45 + i) * 2);
+      }
+      ctx.stroke();
+    }
+
+    // Graffi e ammaccature: il baule ha viaggiato.
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = mix(base, dark, 0.6);
+    ctx.lineWidth = 1.2;
+    for (let i = 0; i < 6; i += 1) {
+      const x0 = random() * w;
+      const y0 = random() * h;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x0 + 18 + random() * 30, y0 + (random() - 0.5) * 8);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  });
+}
+
 /**
  * Drappo del guidone: due bande di colore, nessun emblema.
  *

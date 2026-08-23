@@ -26,6 +26,7 @@ import {
   Rubrica3D,
   Tessera3D,
 } from "./props/Percorso3D";
+import { Baule3D } from "./props/Baule3D";
 import { Cassetta3D, Guidone3D } from "./props/Reparto3D";
 
 const LIFT_FOCUSED = 0.17;
@@ -65,6 +66,8 @@ function ObjectMesh({ object }: { object: SceneObject }) {
       return <Tessera3D />;
     case "busta":
       return <Busta3D />;
+    case "baule":
+      return <Baule3D />;
   }
 }
 

@@ -32,13 +32,14 @@ Oggetti interattivi:
 | quaderno | il catalogo delle Competenze |
 | mappa arrotolata | le Tappe |
 | rubrica | i Maestri del proprio percorso |
+| baule | l'archivio storico del Reparto: campi, uscite, luoghi, fotografie e documenti |
 | tessera | il proprio profilo e l'uscita |
 | busta | la richiesta di adesione a un Reparto |
 | taccuino, fogli | appunti personali |
 
 Cosa c'è sul tavolo dipende dalla situazione reale di chi guarda: chi non
-appartiene ancora a un Reparto trova la busta e non trova cassetta, guidone e
-calendario. Il tavolo racconta la situazione, non offre cassetti vuoti.
+appartiene ancora a un Reparto trova la busta e non trova cassetta, guidone,
+calendario e baule. Il tavolo racconta la situazione, non offre cassetti vuoti.
 
 Non tutti gli oggetti sono interattivi: matita, bussola e lampada a gas servono
 esclusivamente a creare atmosfera. La lampada è anche la sorgente di luce calda
@@ -217,6 +218,15 @@ L'archivio contiene:
 - memoria storica.
 
 Deve essere consultabile senza rompere il linguaggio visivo generale dell'app.
+
+Si apre dal **baule** sul tavolo. La navigazione segue la memoria, non la
+cronologia di un gestionale: si entra in un ricordo (un campo, un'uscita, un
+luogo) e lì dentro si trovano il luogo, i partecipanti, le Squadriglie, il
+programma, le fotografie e i documenti di quel momento
+(`docs/DATA_MODEL.md`). La lettura è per tutti i membri del Reparto; scrivere
+nuovi ricordi e caricare fotografie e documenti è riservato ai Capi, come per
+il calendario. Le fotografie e i documenti non sono pubblici: si aprono con
+un accesso firmato a breve scadenza.
 
 ---
 
