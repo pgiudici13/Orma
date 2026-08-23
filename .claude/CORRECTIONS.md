@@ -11,6 +11,10 @@ Registro di errori, assunzioni errate, bug importanti e lezioni specifiche del p
 
 ## Corrections
 
+### L'animazione di uscita era desincronizzata: la camera tornava a riposo molto più tardi di pannello e blur
+
+Dopo il redesign (REST_POSITION spostata più lontano, `(0, 2.35, 2.1)` invece di `(0, 2.05, 1.75)`), la chiusura del pannello risultava "glitchata": il pannello usciva in ~0.6s e il blur si levava in 0.45s, ma la camera continuava a scivolare verso il riposo con la stessa lambda dell'avvicinamento (4.2) per più di un secondo — su macchine con meno headroom i frame della resa PBR (ombre PCSS, texture a dpr 2) durante quella coda si traducevano in scatti visibili dopo la chiusura. Verificato misurando la posizione reale della camera e lo stato del pannello frame per frame su Chrome con GPU vera: pannello e blur finivano quando la scena era ancora in movimento. Fix: lambda di ritorno dedicata e più rapida (`LAMBDA_RETURN = 6.5`, l'avvicinamento resta lento a 4.2 — il gesto di "prendere in mano" non va toccato) e rilascio del blur leggermente più lungo (0.55s), così pannello, blur e camera arrivano a riposo insieme, come da `docs/UX.md` ("chiusura → ritorno alla scena"). Lezione: quando cambia una posa della camera, riverificare la durata del ritorno rispetto alle altre animazioni di chiusura; e giudicare la fluidità delle animazioni solo su hardware reale — l'ambiente E2E con SwiftShader gira a ~1fps e fa sembrare ogni animazione congelata-e-saltata, quindi non è utilizzabile per valutare la smoothness.
+
 ### `next dev` riscrive `CLAUDE.md` (feature "agentRules")
 
 Next.js 16 aggiunge automaticamente un blocco `<!-- BEGIN:nextjs-agent-rules -->...<!-- END -->` in fondo a `CLAUDE.md` ad ogni `next dev`/`next build`, sovrascrivendo le istruzioni operative del progetto. Disabilitato impostando `agentRules: false` in `next.config.ts` (vedi commit di bootstrap Fase 0). Verificare che resti disattivato dopo ogni upgrade di Next.js.

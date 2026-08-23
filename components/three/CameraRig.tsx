@@ -19,7 +19,12 @@ import { SETTLED, damp } from "./animation";
 
 const REST_POSITION = new Vector3(0, 2.35, 2.1);
 const REST_TARGET = new Vector3(0, 0, 0.02);
+/** Avvicinamento all'oggetto: lento e contemplativo, come "prendere in mano"
+ *  l'oggetto (`docs/UX.md`). */
 const LAMBDA = 4.2;
+/** Ritorno al tavolo: più rapido, così pannello, blur e camera arrivano a
+ *  riposo insieme e la scena non continua a scivolare dopo la chiusura. */
+const LAMBDA_RETURN = 6.5;
 
 export function CameraRig() {
   const camera = useThree((state) => state.camera);
@@ -59,16 +64,18 @@ export function CameraRig() {
       desiredTarget.current.copy(REST_TARGET);
     }
 
+    const lambda = focused ? LAMBDA : LAMBDA_RETURN;
+
     camera.position.set(
-      damp(camera.position.x, desiredPosition.current.x, LAMBDA, delta),
-      damp(camera.position.y, desiredPosition.current.y, LAMBDA, delta),
-      damp(camera.position.z, desiredPosition.current.z, LAMBDA, delta),
+      damp(camera.position.x, desiredPosition.current.x, lambda, delta),
+      damp(camera.position.y, desiredPosition.current.y, lambda, delta),
+      damp(camera.position.z, desiredPosition.current.z, lambda, delta),
     );
 
     lookAt.current.set(
-      damp(lookAt.current.x, desiredTarget.current.x, LAMBDA, delta),
-      damp(lookAt.current.y, desiredTarget.current.y, LAMBDA, delta),
-      damp(lookAt.current.z, desiredTarget.current.z, LAMBDA, delta),
+      damp(lookAt.current.x, desiredTarget.current.x, lambda, delta),
+      damp(lookAt.current.y, desiredTarget.current.y, lambda, delta),
+      damp(lookAt.current.z, desiredTarget.current.z, lambda, delta),
     );
 
     camera.lookAt(lookAt.current);

@@ -106,7 +106,7 @@ export function TableExperience({
           transition={
             reducedMotion
               ? { duration: 0 }
-              : { duration: 0.45, ease: "easeOut" }
+              : { duration: 0.55, ease: "easeOut" }
           }
         >
           {mode === "scene3d" ? (
