@@ -77,14 +77,20 @@ Orma/
 │   ├── competenze/         # catalogo + avvio percorso (P3-T06)
 │   ├── tappe/               # percorso Tappe, informativo (P3-T07)
 │   ├── onboarding-reparto/  # richiesta associazione Reparto (P5-T02)
-│   ├── reparto/             # funzionalità Reparto: Membri, Squadriglie, Calendario (Fase 7)
+│   ├── reparto/             # dati + Server Action di Reparto (la UI vive sul tavolo, RD-T02)
+│   ├── tavolo-dev/          # sandbox della scena, solo in sviluppo (404 in produzione)
 │   ├── impostazioni/        # profilo, logout (P5-T03)
 │   ├── admin/                # visibilità read-only (DEC-015) + richieste-reparto/ (P5-T02)
-│   └── actions/             # Server Action condivise (progresso, note)
+│   └── actions/             # Server Action condivise (progresso, note, dati delle superfici)
 ├── components/
-│   ├── panel/              # pannello di contenuto DOM (condiviso 3D/2D)
+│   ├── layout/             # PaperPage: sfondo esplicito per le pagine fuori dal tavolo
+│   ├── panel/              # involucro del pannello DOM (condiviso 3D/2D)
+│   │   └── surfaces/       # una superficie di contenuto per famiglia di oggetti
+│   ├── reparto/            # sezioni Membri/Squadriglie/Calendario (usate dalle superfici)
 │   ├── table/              # scelta della resa + composizione 2D/mobile
-│   └── three/              # scena R3F: canvas, tavolo, carte, camera, materiali
+│   └── three/              # scena R3F: canvas, tavolo, camera, materiali
+│       ├── materials/      # texture procedurali (colore + normali + finitura) e materiali
+│       └── props/          # modelli degli oggetti: lampada, Reparto, percorso
 ├── lib/
 │   ├── scene/              # store scena, definizione oggetti, capacità del device, dati reali (SceneDataContext)
 │   ├── queries/             # fetch dati Supabase per Server Component (P3-T04)
@@ -144,7 +150,15 @@ Limiti dichiarati: (1) `brevetto_specialita` (composizione di ogni Brevetto) non
 
 **Deploy** (via MCP Supabase, progetto `ouffyxrhxhzqcduvgpon`): 4 migrazioni applicate (`reparto_ruolo`, `squadriglia`, `capo_richiesta_reparto`, `merge_capo_select_policies` — quest'ultima un fix di performance per `multiple_permissive_policies` segnalato da `get_advisors`, stesso pattern di `20260812120500_merge_admin_select_policies.sql`). Nessun nuovo advisor di sicurezza rispetto alla baseline pre-esistente.
 
-Limite dichiarato: nessun test RLS automatizzato copre l'isolamento positivo cross-Reparto per un Capo reale — `ruolo`/`reparto_id`/`squadriglia_id` sono scrivibili solo da SQL diretto o da `decidi_richiesta_reparto()` (gated a sua volta su `is_admin`/`is_capo_reparto`, circolare per un bootstrap in test), stesso limite già presente per `is_admin` (mai testato automaticamente). Vedi `.claude/CORRECTIONS.md`. Verificato invece con introspezione diretta delle policy/funzioni applicate (MCP `execute_sql`).
+**Redesign della scena tavolo (trasversale, 2026-08-23)**: sessione dedicata su richiesta del proprietario del progetto, con tre obiettivi in ordine di priorità.
+
+1. **Interazione riparata**. Gli oggetti della scena erano difficili o impossibili da cliccare, per tre cause distinte tutte registrate in `CORRECTIONS.md`: il wrapper `<Html>` di drei restava a `pointer-events: auto` e copriva ogni oggetto con un rettangolo di 80×96 px; `CameraRig` risolveva l'oggetto a fuoco nel set dimostrativo e sollevava un'eccezione dentro `useFrame` sugli id delle carte reali; gli hotspot DOM si proiettavano con la camera del frame precedente e, con `frameloop="demand"`, si congelavano un frame indietro. Aggiunti volumi di presa invisibili per gli oggetti sottili e una quota di appoggio derivata dall'ingombro reale invece che da una tabella di costanti. Tre test E2E di regressione, verificati falliti sullo stato pre-fix.
+2. **Tutto sul tavolo** ([DEC-019](DECISIONS.md#dec-019--ogni-funzionalità-è-un-oggetto-del-tavolo-le-rotte-restano-come-deep-link), [DEC-021](DECISIONS.md)): nove nuovi oggetti con altrettante superfici di contenuto, registro `kind → superficie` al posto dello `switch` nel pannello, dati caricati su richiesta all'apertura dell'oggetto, rotte ridotte a deep-link, link di navigazione rimossi. Chiude la nota aperta di Fase 7.
+3. **Resa realistica** ([DEC-020](DECISIONS.md)): materiali PBR con mappe di rilievo e finitura derivate dallo stesso disegno del colore, ambiente procedurale per i riflessi, ombre morbide ad area, bordi smussati, due livelli di qualità, e una lampada a gas che è insieme oggetto di scena e sorgente di luce calda. Budget rimisurato: 34 draw call, 4 984 triangoli, 16,9 MB di texture (soglie in `tests/e2e/budget.ts`).
+
+Limiti dichiarati: le superfici `taccuino` e `foglio` mostrano ancora i segnaposto di Fase 2 (nessun modello dati per le note libere); la rubrica mostra solo i Maestri già associati, perché la ricerca globale è la Fase 8 e richiede un meccanismo di visibilità esplicita; i frame rate reali restano da misurare su hardware vero (P10-T03).
+
+Limite dichiarato (Fase 7): nessun test RLS automatizzato copre l'isolamento positivo cross-Reparto per un Capo reale — `ruolo`/`reparto_id`/`squadriglia_id` sono scrivibili solo da SQL diretto o da `decidi_richiesta_reparto()` (gated a sua volta su `is_admin`/`is_capo_reparto`, circolare per un bootstrap in test), stesso limite già presente per `is_admin` (mai testato automaticamente). Vedi `.claude/CORRECTIONS.md`. Verificato invece con introspezione diretta delle policy/funzioni applicate (MCP `execute_sql`).
 
 ## 7. Modello dati ad alto livello
 
@@ -161,7 +175,9 @@ Regola non negoziabile: **una Specialità/Competenza/Tappa ufficiale esiste una 
 ## 8. UX e design direction
 
 - Home = scena tavolo, non dashboard. Interazione: oggetto → focus → leggero movimento camera → tavolo sfocato sullo sfondo → contenuto → chiusura → ritorno alla scena.
-- Non tutti gli oggetti sono interattivi; elementi decorativi restano statici.
+- **Il tavolo è l'unica superficie di navigazione** ([DEC-019](DECISIONS.md#dec-019--ogni-funzionalità-è-un-oggetto-del-tavolo-le-rotte-restano-come-deep-link)): ogni funzionalità è un oggetto fisico — cassetta di Reparto (membri, richieste di adesione), guidone (Squadriglie), calendario, album dei distintivi (Specialità), quaderno (Competenze), mappa (Tappe), rubrica (Maestri), tessera (profilo e uscita), busta (adesione a un Reparto), più le carte del percorso attivo. Le rotte omonime esistono ancora ma sono deep-link che aprono il tavolo con l'oggetto già a fuoco.
+- Cosa c'è sul tavolo dipende dal contesto reale dell'utente: chi non ha un Reparto trova la busta e non la cassetta.
+- Non tutti gli oggetti sono interattivi; elementi decorativi restano statici (matita, bussola, lampada a gas — quest'ultima è anche la sorgente di luce calda della scena).
 - Responsive: desktop/tablet sono il riferimento primario per la scena tavolo; mobile richiede una composizione ridisegnata (non una scena rimpicciolita).
 - Palette e tipografia derivano dai materiali reali (legno, carta, tessuto, metallo), non da un design system definito a priori.
 
@@ -232,9 +248,10 @@ Dettaglio in SDD §25.
 
 Vincoli per la scena 3D, con budget quantitativo in SDD §10 e verifica automatica in E2E:
 
-- texture di dimensioni contenute e riutilizzate tra carte (stesso modello 3D, texture diverse);
+- texture di dimensioni contenute e riutilizzate tra carte (stesso modello 3D, texture diverse); le mappe PBR di un materiale sono condivise da tutti gli oggetti fatti di quel materiale (una sola fibra di carta per tutta la scena) e occlusione/rugosità/metallicità stanno in un'unica texture impacchettata;
 - niente geometria duplicata per ogni carta — geometrie singleton in `components/three/geometry.ts`;
-- una sola luce con ombre, nessun post-processing, `frameloop="demand"` quando la scena è ferma;
+- due livelli di qualità ([DEC-020](DECISIONS.md#dec-020--resa-realistica-pbr-in-tempo-reale-ambiente-procedurale-ombre-morbide--niente-path-tracing)): `base` con una sola luce che proietta ombre, `alto` con la seconda ombra della lampada e ombre morbide ad area. Nessun post-processing in nessuno dei due, `frameloop="demand"` quando la scena è ferma;
+- budget misurato (tavolo completo, livello alto): 34 draw call, 4 984 triangoli, 16,9 MB di texture — soglie in `tests/e2e/budget.ts`;
 - attenzione a ombre, render loop e GPU mobile (frame rate reali da misurare in P10-T03).
 
 ## 15. Vincoli

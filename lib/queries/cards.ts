@@ -189,6 +189,40 @@ export async function getTableCards(): Promise<CardData[]> {
 }
 
 /**
+ * Contesto del tavolo: cosa mostrare e a chi (RD-T07).
+ *
+ * Quali oggetti compaiono dipende dalla situazione reale dell'utente — chi non
+ * appartiene ancora a un Reparto trova la busta della richiesta al posto della
+ * cassetta e del guidone (`buildTable` in `lib/scene/objects.ts`). Il profilo
+ * viene letto una volta sola e riusato per gli eventi.
+ */
+export async function getTableContext(): Promise<{
+  cards: CardData[];
+  events: EventoData[];
+  hasReparto: boolean;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { cards: [], events: [], hasReparto: false };
+
+  const { data: profile } = (await supabase
+    .from("profiles")
+    .select("reparto_id")
+    .eq("id", user.id)
+    .single()) as unknown as { data: { reparto_id: string | null } | null };
+
+  const repartoId = profile?.reparto_id ?? null;
+  const [cards, events] = await Promise.all([
+    getTableCards(),
+    repartoId ? getRepartoEvents(supabase, repartoId) : Promise.resolve([]),
+  ]);
+
+  return { cards, events, hasReparto: Boolean(repartoId) };
+}
+
+/**
  * Eventi del calendario di Reparto dell'utente autenticato (P7-T03).
  */
 export async function getTableEvents(): Promise<EventoData[]> {
@@ -206,10 +240,17 @@ export async function getTableEvents(): Promise<EventoData[]> {
 
   if (!profile?.reparto_id) return [];
 
+  return getRepartoEvents(supabase, profile.reparto_id);
+}
+
+async function getRepartoEvents(
+  supabase: SupabaseServerClient,
+  repartoId: string,
+): Promise<EventoData[]> {
   const { data: eventi } = (await supabase
     .from("evento")
     .select("id, titolo, descrizione, tipo, data_inizio, data_fine, luogo")
-    .eq("reparto_id", profile.reparto_id)
+    .eq("reparto_id", repartoId)
     .order("data_inizio", { ascending: true })
     .limit(10)) as unknown as {
     data:

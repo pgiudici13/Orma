@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CARD_GEOMETRY } from "@/components/three/geometry";
+import { CARD_GEOMETRY, OBJECT_SIZE } from "@/components/three/geometry";
 
 const THREE_DIR = join(process.cwd(), "components/three");
 
@@ -14,11 +14,17 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe("geometrie condivise", () => {
-  it("espone una sola istanza di geometria carta", () => {
+  it("espone una sola istanza di geometria carta, con lo spessore dichiarato", () => {
     // Il vincolo di CLAUDE.md è "stesso modello 3D, texture diverse": ogni
     // carta deve puntare a questa istanza, non crearne una propria.
-    expect(CARD_GEOMETRY.type).toBe("BoxGeometry");
-    expect(CARD_GEOMETRY.uuid).toBe(CARD_GEOMETRY.uuid);
+    CARD_GEOMETRY.computeBoundingBox();
+    const box = CARD_GEOMETRY.boundingBox!;
+
+    // La lastra è centrata sul proprio spessore e misura quanto dichiarato in
+    // OBJECT_SIZE: è da lì che derivano quota di appoggio e volume di presa.
+    expect(box.max.y - box.min.y).toBeCloseTo(OBJECT_SIZE.specialita.height, 4);
+    expect(box.max.y).toBeCloseTo(OBJECT_SIZE.specialita.height / 2, 4);
+    expect(box.max.x - box.min.x).toBeCloseTo(OBJECT_SIZE.specialita.width, 4);
   });
 
   it("non crea geometrie fuori da geometry.ts", () => {

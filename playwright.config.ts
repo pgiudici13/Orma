@@ -4,7 +4,13 @@ const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  fullyParallel: true,
+  // Un worker alla volta: questi test aprono contesti WebGL renderizzati via
+  // software (SwiftShader, vedi `launchOptions`). Quattro scene 3D concorrenti
+  // saturano la CPU e la scena non arriva a disegnare entro i timeout — un
+  // fallimento dell'ambiente di test, non dell'applicazione. La suite è
+  // piccola: il costo è qualche decina di secondi.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: "list",

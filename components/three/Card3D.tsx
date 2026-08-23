@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { SceneObject } from "@/lib/scene/objects";
 import { CARD_GEOMETRY } from "./geometry";
+import { PaperSurface } from "./materials/Surfaces";
 import { getCardTexture } from "./materials/textures";
 
 /**
@@ -16,7 +17,7 @@ export function Card3D({ object }: { object: SceneObject }) {
 
   return (
     <mesh castShadow receiveShadow geometry={CARD_GEOMETRY}>
-      <meshStandardMaterial map={map} roughness={0.86} metalness={0} />
+      <PaperSurface map={map} />
     </mesh>
   );
 }

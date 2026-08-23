@@ -11,6 +11,7 @@ import { FadeIn } from "./FadeIn";
 import { LooseSheet } from "./LooseSheet";
 import { Notebook } from "./Notebook";
 import { Pencil } from "./Pencil";
+import { Plaque } from "./Plaque";
 import { TableSurface } from "./TableSurface";
 
 /**
@@ -29,11 +30,19 @@ type Placement = { top: string; left: string; rotate: number };
 
 /** Posizione degli oggetti decorativi/di navigazione (id fissi). */
 const WIDE_LAYOUT_DECORATIVE: Record<string, Placement> = {
-  taccuino: { top: "20%", left: "13%", rotate: -6 },
-  calendario: { top: "60%", left: "16%", rotate: -2 },
-  foglio: { top: "74%", left: "40%", rotate: 5 },
-  matita: { top: "84%", left: "62%", rotate: -8 },
-  bussola: { top: "76%", left: "84%", rotate: 0 },
+  taccuino: { top: "18%", left: "12%", rotate: -6 },
+  calendario: { top: "52%", left: "13%", rotate: -2 },
+  foglio: { top: "78%", left: "34%", rotate: 5 },
+  "album-specialita": { top: "16%", left: "34%", rotate: 4 },
+  "quaderno-competenze": { top: "80%", left: "13%", rotate: -8 },
+  "mappa-tappe": { top: "10%", left: "58%", rotate: -3 },
+  "rubrica-maestri": { top: "80%", left: "56%", rotate: 9 },
+  tessera: { top: "88%", left: "76%", rotate: -6 },
+  "busta-adesione": { top: "88%", left: "76%", rotate: 4 },
+  "cassetta-reparto": { top: "30%", left: "86%", rotate: -6 },
+  guidone: { top: "58%", left: "84%", rotate: 10 },
+  matita: { top: "70%", left: "44%", rotate: -8 },
+  bussola: { top: "44%", left: "88%", rotate: 0 },
 };
 
 /**
@@ -52,7 +61,19 @@ function widePlacement(object: SceneObject): Placement | undefined {
 
 /** Ordine di lettura nella composizione stretta (mobile): famiglie di contenuto, poi decorativi selezionati. */
 const NARROW_CONTENT_ORDER = ["specialita", "tappa", "competenza"] as const;
-const NARROW_DECORATIVE_ORDER = ["calendario", "taccuino", "foglio"] as const;
+const NARROW_DECORATIVE_ORDER = [
+  "busta-adesione",
+  "cassetta-reparto",
+  "guidone",
+  "calendario",
+  "album-specialita",
+  "quaderno-competenze",
+  "mappa-tappe",
+  "rubrica-maestri",
+  "taccuino",
+  "foglio",
+  "tessera",
+] as const;
 
 function ObjectVisual({ object }: { object: SceneObject }) {
   switch (object.kind) {
@@ -70,6 +91,20 @@ function ObjectVisual({ object }: { object: SceneObject }) {
       return <Pencil className="w-32" />;
     case "bussola":
       return <Compass className="w-20" />;
+    case "cassetta":
+      return <Plaque label={object.label} title={object.title} />;
+    case "album":
+    case "mappa":
+      return <Plaque label={object.label} title={object.title} />;
+    case "guidone":
+    case "quaderno":
+    case "rubrica":
+      return (
+        <Plaque label={object.label} title={object.title} tone="tessuto" />
+      );
+    case "tessera":
+    case "busta":
+      return <LooseSheet note={object.title} />;
   }
 }
 

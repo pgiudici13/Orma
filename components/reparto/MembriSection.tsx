@@ -1,17 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-
-export type MemberData = {
-  id: string;
-  nome: string;
-  ruolo: string;
-  squadrigliaId: string | null;
-  squadrigliaNome: string | null;
-  specialitaCompletate: { id: string; nome: string; slug?: string }[];
-  competenzeCompletate: { id: string; nome: string }[];
-  tappaAttuale: string | null;
-};
+import type { MemberData } from "@/lib/queries/reparto";
 
 export function MembriSection({ members }: { members: MemberData[] }) {
   const [search, setSearch] = useState("");

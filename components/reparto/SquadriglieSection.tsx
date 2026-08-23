@@ -6,23 +6,20 @@ import {
   creaSquadriglia,
   eliminaSquadriglia,
   rinominaSquadriglia,
-} from "./actions";
-import type { MemberData } from "./MembriSection";
-
-export type SquadrigliaData = {
-  id: string;
-  nome: string;
-  created_at: string;
-};
+} from "@/app/reparto/actions";
+import type { MemberData, SquadrigliaData } from "@/lib/queries/reparto";
 
 export function SquadriglieSection({
   squadriglie,
   members,
   isCapoOrAdmin,
+  onMutated,
 }: {
   squadriglie: SquadrigliaData[];
   members: MemberData[];
   isCapoOrAdmin: boolean;
+  /** Chiamata dopo ogni scrittura, per ricaricare la superficie (DEC-021). */
+  onMutated?: () => void;
 }) {
   const [editingSqId, setEditingSqId] = useState<string | null>(null);
   const [editingSqName, setEditingSqName] = useState("");
@@ -70,6 +67,7 @@ export function SquadriglieSection({
           action={async (formData) => {
             await creaSquadriglia(formData);
             setShowNewSqForm(false);
+            onMutated?.();
           }}
           className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-[3px]"
           style={{
@@ -150,6 +148,7 @@ export function SquadriglieSection({
                     action={async (formData) => {
                       await rinominaSquadriglia(sq.id, formData);
                       setEditingSqId(null);
+                      onMutated?.();
                     }}
                     className="flex items-center gap-2 flex-1"
                   >
@@ -215,6 +214,7 @@ export function SquadriglieSection({
                       action={async () => {
                         if (confirm(`Sei sicuro di voler eliminare la Squadriglia ${sq.nome}? I membri verranno disassegnati.`)) {
                           await eliminaSquadriglia(sq.id);
+                          onMutated?.();
                         }
                       }}
                     >
@@ -270,7 +270,10 @@ export function SquadriglieSection({
 
                       {isCapoOrAdmin ? (
                         <form
-                          action={assegnaMembroSquadriglia.bind(null, m.id)}
+                          action={async (formData) => {
+                            await assegnaMembroSquadriglia(m.id, formData);
+                            onMutated?.();
+                          }}
                           className="shrink-0"
                         >
                           <select
@@ -363,7 +366,10 @@ export function SquadriglieSection({
 
                   {isCapoOrAdmin ? (
                     <form
-                      action={assegnaMembroSquadriglia.bind(null, m.id)}
+                      action={async (formData) => {
+                        await assegnaMembroSquadriglia(m.id, formData);
+                        onMutated?.();
+                      }}
                       className="shrink-0"
                     >
                       <select

@@ -17,6 +17,10 @@ export const MATERIAL_FALLBACK = {
   "--metal-base": "#8d8c7e",
   "--ink": "#2c2216",
   "--accent": "#9c3b2b",
+  "--brass-base": "#b08a4f",
+  "--brass-dark": "#7c5f34",
+  "--glass-warm": "#f7e8ca",
+  "--lamp-flame": "#ffb46b",
 } as const;
 
 export type MaterialToken = keyof typeof MATERIAL_FALLBACK;

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { PaperPage } from "@/components/layout/PaperPage";
 import { createClient } from "@/lib/supabase/server";
 import { decidiRichiesta } from "./actions";
 
@@ -34,7 +35,7 @@ export default async function RichiesteRepartoPage() {
     .order("created_at")) as unknown as { data: RichiestaRow[] | null };
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
+    <PaperPage>
       <p
         className="font-sans text-[10px] tracking-[0.16em] uppercase"
         style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
@@ -111,6 +112,6 @@ export default async function RichiesteRepartoPage() {
           </li>
         ))}
       </ul>
-    </main>
+    </PaperPage>
   );
 }

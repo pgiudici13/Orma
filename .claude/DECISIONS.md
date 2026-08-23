@@ -437,8 +437,108 @@ Le due rese condividono la definizione degli oggetti (`lib/scene/objects.ts`), l
 
 ### Consequences
 
+- Estesa da [DEC-020](#dec-020--resa-realistica-pbr-in-tempo-reale-ambiente-procedurale-ombre-morbide--niente-path-tracing): la scelta a runtime non riguarda più solo "3D o 2D", ma anche **quanto** costa il 3D — `quality: "alto" | "base"` nello stesso `useSceneCapabilities`.
 - Il vecchio `components/table/Table.tsx` (prototipo statico P1-T02) è stato sostituito da `TableFlat.tsx`, che è interattivo e responsive.
 - Su viewport strette esistono nel DOM entrambe le composizioni 2D (larga e stretta), una delle due nascosta con `display: none`: gli identificatori `data-scene-hotspot` non sono quindi univoci nel documento, cosa di cui i test devono tenere conto.
+
+---
+
+## DEC-019 — Ogni funzionalità è un oggetto del tavolo; le rotte restano come deep-link
+
+### Status
+
+Accepted
+
+### Context
+
+La nota aperta a fine Fase 7 di [`TODO.md`](TODO.md) segnalava che `app/reparto/*` e `app/onboarding-reparto/` erano pagine piene fuori dalla scena tavolo, in violazione del §15 di [`PROJECT.md`](PROJECT.md) e del principio 1 di `CLAUDE.md`. Lo stesso valeva per `app/impostazioni/`, `app/specialita/`, `app/competenze/`, `app/tappe/`: funzionalità raggiungibili solo abbandonando il tavolo, con due link di navigazione in alto a destra sopra la scena — l'ultimo residuo di dashboard.
+
+Indicazione esplicita del proprietario del progetto (2026-08-23): **tutto deve stare sul tavolo, nulla da altre parti**.
+
+### Decision
+
+- Ogni funzionalità dell'app è un oggetto fisico sul tavolo, che apre la propria superficie dentro lo stesso `ObjectPanel`:
+
+  | Oggetto | Superficie |
+  | --- | --- |
+  | cassetta di Reparto | membri del Reparto + richieste di adesione (solo Capi/admin) |
+  | guidone di Squadriglia | Squadriglie, assegnazione membri |
+  | calendario | calendario di Reparto, con le azioni dei Capi |
+  | album dei distintivi | catalogo Specialità |
+  | quaderno | catalogo Competenze |
+  | mappa arrotolata | Tappe |
+  | rubrica | Maestri del proprio percorso |
+  | tessera | profilo, dati dell'account, uscita |
+  | busta | richiesta di adesione a un Reparto |
+  | carte, taccuino, foglio | invariati da Fase 2/3 |
+
+- Quali oggetti ci siano dipende dal contesto reale dell'utente (`buildTable` in `lib/scene/objects.ts`): chi non appartiene a un Reparto trova la busta e **non** trova cassetta, guidone e calendario.
+- Le superfici sono un registro `kind → componente` (`components/panel/surfaces/`), non uno `switch` dentro il pannello: aggiungere un oggetto è aggiungere una riga.
+- Le rotte esistenti restano come **deep-link**: renderizzano il tavolo con l'oggetto già a fuoco (`initialFocus`). Nessuna di esse è più una pagina.
+- I due link di navigazione sopra la scena sono stati rimossi.
+- Restano fuori dal tavolo solo le superfici che non possono starci: autenticazione (non c'è ancora un tavolo) e `/admin` globale (non linkata, DEC-015).
+
+### Why
+
+- È il vincolo di prodotto non negoziabile del progetto: la Home è un tavolo, non una dashboard.
+- Mantenere le rotte come deep-link costa poco e conserva i collegamenti diretti, il gate a tre stadi del middleware (che manda a `/onboarding-reparto`) e i rimandi già esistenti nel codice.
+- Un registro di superfici tiene il pannello piccolo mentre gli oggetti aumentano, ed è la stessa struttura per entrambe le rese (3D e composizione 2D).
+
+### Alternatives
+
+- **Rimuovere del tutto le rotte** (redirect alla Home): metafora più pura, ma rompe i link diretti e richiede di ridisegnare il gate di onboarding. Scartata dal proprietario del progetto.
+- **Pannelli guidati dal routing** (layout condiviso + rotte annidate, stile modal route di Next.js): idiomatico e con i dati caricati lato server, ma ogni apertura diventa una navigazione, e il tavolo deve restare immobile sotto il pannello. Scartata: l'esperienza richiesta è "prendere in mano un oggetto", non cambiare pagina.
+
+### Consequences
+
+- Le sezioni di Reparto si sono spostate da `app/reparto/` a `components/reparto/`, riusate identiche dalle superfici; `RepartoTabs` è stato eliminato — le tre schede sono ora tre oggetti distinti sul tavolo.
+- La composizione 2D (DEC-013) deve raggiungere le stesse superfici: gli oggetti senza un disegno piatto dedicato usano una targhetta (`components/table/Plaque.tsx`), rappresentazione diversa ma stesso modello di interazione.
+- La camera è stata allargata (fov 41, posizione più arretrata) per contenere tutti gli oggetti.
+- Chiude la nota aperta di Fase 7.
+
+---
+
+## DEC-020 — Resa realistica: PBR in tempo reale, ambiente procedurale, ombre morbide — niente path tracing
+
+### Status
+
+Accepted
+
+### Context
+
+`docs/DESIGN.md` chiede un risultato "fotorealistico o molto vicino alla fotografia". La scena di Fase 2 era lontana: ogni oggetto era un parallelepipedo a spigolo vivo con una sola texture di colore, nessuna mappa di rilievo o di rugosità, una sola luce direzionale e nessun ambiente da riflettere. Il proprietario del progetto ha chiesto esplicitamente "raytracing", lasciando però la scelta della tecnica all'implementazione, con il vincolo dichiarato delle performance mobile (`CLAUDE.md`).
+
+### Decision
+
+Nessun path tracing. La resa si ottiene con tecniche in tempo reale:
+
+- **materiali PBR completi**: mappe di normali, rugosità e occlusione generate proceduralmente dallo stesso disegno che produce il colore (`components/three/materials/textures.ts`), impacchettate come nel formato glTF (R = occlusione, G = rugosità, B = metallicità) per non moltiplicare le allocazioni;
+- **materiali dichiarati per **materiale**, non per aspetto** (`components/three/materials/Surfaces.tsx`): legno verniciato, carta, tela, ottone;
+- **ambiente procedurale**: `<Environment>` di drei composto con `<Lightformer>` (finestra fredda, alone caldo della lampada, rimbalzo del piano), cotto una volta sola in una cubemap. Nessun file HDRI: nessun asset da verificare per licenza, nessun megabyte da scaricare;
+- **geometrie smussate**: le lastre (carte, taccuino, calendario, foglio, piano) sono estrusioni con angoli raccordati e spigolo smussato, non parallelepipedi;
+- **ombre morbide ad area** (PCSS, `SoftShadows` di drei) sul livello di qualità alto;
+- **due livelli di qualità** (`alto`/`base`) scelti a runtime in `lib/scene/useSceneCapabilities.ts`, estensione di [DEC-013](#dec-013--scena-3d-su-desktoptablet-composizione-2d-dedicata-altrove): cambia la qualità, mai il contenuto.
+
+Direzione visiva conseguente: il tavolo è illuminato **di sera**, con la lampada a gas come luce dominante calda e la finestra come riempimento freddo. È il contrasto fra le due a dare volume agli oggetti.
+
+### Why
+
+- Un path tracer (`three-gpu-pathtracer`) richiede di ricostruire la BVH ad ogni movimento: nella scena ORMA gli oggetti si sollevano all'hover e al focus e la camera si sposta, quindi l'immagine tornerebbe rumorosa **proprio durante l'interazione**, il momento in cui deve essere più credibile.
+- WebGPU non è ancora affidabile su tutti i browser di riferimento, e su GPU mobile il path tracing è fuori discussione — mentre il vincolo di `CLAUDE.md` sulle performance resta.
+- Il divario di realismo non era nel motore di rendering ma nei materiali: senza rilievo, rugosità e ambiente da riflettere, nessun algoritmo di illuminazione produce una superficie credibile.
+- Le tecniche scelte non aggiungono **nessuna dipendenza npm**: `@react-three/drei` era già in `package.json` (DEC-003).
+
+### Alternatives
+
+- **Path tracing ibrido solo desktop** (`three-gpu-pathtracer` a scena ferma, raster durante l'interazione): massimo realismo a riposo, ma dipendenza pesante, BVH da ricostruire, rumore visibile durante hover e focus, tablet e mobile esclusi. Scartata.
+- **Baking offline con Blender** (lightmap pre-calcolate con un path tracer vero): realismo massimo a costo runtime quasi nullo, ma richiede authoring 3D esterno e mal si concilia con carte generate da dati dinamici. Scartata.
+
+### Consequences
+
+- **DEC-014 resta valida**: nessun `EffectComposer`, nessun pass di post-processing. `SoftShadows` è una patch agli shader e `ContactShadows` (se servirà) è un render target dedicato, non un passaggio sull'immagine finale; il blur del tavolo resta sul layer DOM.
+- Il budget di performance di `docs/SDD.md` §10 è stato rimisurato e alzato: più triangoli (bordi smussati), più texture (mappe PBR), una seconda luce con ombre sul livello alto.
+- La sonda di performance misura ora il **picco** e non l'ultimo frame: con `frameloop="demand"` l'ultimo frame disegnato può essere un passaggio ausiliario che non descrive la scena.
+- I colori dei nuovi materiali (ottone, vetro, fiamma) sono token in `app/globals.css`, con i fallback allineati in `components/three/materials/palette.ts` e la documentazione in `docs/VISUAL_REFERENCE.md`: le tre fonti vanno tenute allineate.
 
 ---
 
@@ -607,3 +707,38 @@ Rispetta i requisiti di `docs/PERMISSIONS.md` (privacy by default, isolamento mu
 - Pagina `/reparto` con tab Membri, Squadriglie e Calendario.
 - Oggetto `calendario` sul tavolo scout popolato dinamicamente con i dati reali del Reparto dell'utente.
 
+
+---
+
+## DEC-021 — Caricamento dei dati per superficie, su richiesta
+
+### Status
+
+Accepted
+
+### Context
+
+Con [DEC-019](#dec-019--ogni-funzionalità-è-un-oggetto-del-tavolo-le-rotte-restano-come-deep-link) il tavolo ospita ogni funzionalità dell'app. Se la Home caricasse in anticipo i dati di tutte le superfici — membri del Reparto, Squadriglie, calendario, 65 Specialità del catalogo, Maestri, profilo — pagherebbe l'intero costo per disegnare un tavolo su cui l'utente forse aprirà un solo oggetto.
+
+### Decision
+
+- I dati di una superficie si caricano quando l'oggetto viene aperto, tramite Server Action di sola lettura in `app/actions/surfaces.ts`, che chiamano le query in `lib/queries/`.
+- L'hook `lib/scene/useSurfaceData.ts` gestisce caricamento, cache a livello di modulo (riaprire un oggetto non ricarica) ed errori (una superficie già aperta non si svuota se la rete cade).
+- Dopo una scrittura, la superficie chiama `reload()`: le sezioni riusate ricevono una callback `onMutated`, perché `revalidatePath` invalida la cache del server, non quella del client.
+- La Home continua a caricare lato server solo ciò che serve a **disegnare** il tavolo: le carte del percorso attivo e i prossimi eventi (`getTableContext`).
+
+### Why
+
+- Mantiene la Home leggera quanto in Fase 3, indipendentemente da quanti oggetti ci sono sul tavolo.
+- Nessun identificativo utente arriva dal client: l'identità è quella della sessione e l'autorizzazione resta la RLS (`docs/PERMISSIONS.md`), esattamente come per le pagine che queste superfici sostituiscono.
+
+### Alternatives
+
+- **Prefetch di tutto nella Home**: un solo round-trip, ma costo proporzionale al numero di oggetti anche quando non si apre nulla.
+- **Route handler REST dedicati**: equivalenti nella sostanza, ma richiedono di progettare e mantenere una superficie API che le Server Action rendono superflua.
+
+### Consequences
+
+- Aprire un oggetto pesante mostra per un istante una riga di attesa (`SurfaceLoading`) invece del contenuto: accettabile, ed è il motivo per cui il calendario mostra subito gli eventi che l'oggetto porta già con sé.
+- La cache è per pagina: un aggiornamento fatto altrove non si riflette finché non si ricarica o non si scrive da qui.
+- I test unitari che montano una superficie devono simulare la Server Action: in jsdom non esiste una richiesta a cui agganciarsi (vedi `tests/unit/objectPanelCalendario.test.tsx`).

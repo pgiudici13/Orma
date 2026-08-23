@@ -135,30 +135,41 @@ Non ogni superficie deve necessariamente vivere "sul tavolo": Reparto, ricerca M
 
 - **Framework**: Next.js (App Router), TypeScript strict — [DEC-001](../.claude/DECISIONS.md#dec-001--stack-frontend-react--nextjs-su-vercel).
 - **Confine 3D/2D**: la scena tavolo (R3F) vive in Client Component isolate; i pannelli di contenuto (dettaglio carta, form note, impostazioni) sono componenti React DOM standard, sovrapposti/instradati dalla scena ma indipendenti da essa.
-- **Data fetching**: dati di contenuto ufficiale e dati personali arrivano da Supabase; pattern esatto (Server Components + fetch diretto vs client-side query layer) da definire in fase di implementazione, coerente con Next.js App Router.
+- **Superfici di contenuto**: il pannello (`components/panel/ObjectPanel.tsx`) è solo l'involucro — apertura, chiusura, intestazione, ritorno del focus. Cosa contiene lo decide un registro `kind → componente` in `components/panel/surfaces/`, con la larghezza del foglio dichiarata per superficie ([DEC-019](../.claude/DECISIONS.md#dec-019--ogni-funzionalità-è-un-oggetto-del-tavolo-le-rotte-restano-come-deep-link)). Aggiungere un oggetto al tavolo è aggiungere una riga al registro.
+- **Rotte**: le rotte omonime delle superfici (`/reparto`, `/impostazioni`, `/specialita`, `/competenze`, `/tappe`, `/onboarding-reparto`) sono deep-link: renderizzano il tavolo con l'oggetto già a fuoco, non pagine.
+- **Data fetching**: la Home carica lato server solo ciò che serve a disegnare il tavolo (`getTableContext`: carte del percorso attivo, prossimi eventi, appartenenza a un Reparto). I dati di una superficie arrivano quando l'oggetto viene aperto, tramite Server Action di sola lettura in `app/actions/surfaces.ts` e l'hook `lib/scene/useSurfaceData.ts` — [DEC-021](../.claude/DECISIONS.md#dec-021--caricamento-dei-dati-per-superficie-su-richiesta). Nessun identificativo utente arriva dal client: l'identità è quella della sessione, l'autorizzazione resta la RLS.
 - **Componenti**: piccoli, focalizzati, senza duplicazione di logica tra Specialità/Competenze (che condividono lo stesso paradigma — vedi §4.3).
 
 ## 10. 3D Architecture
 
 - **Libreria**: React Three Fiber su Three.js — [DEC-003](../.claude/DECISIONS.md#dec-003--3d-threejs--react-three-fiber-uso-selettivo).
-- **Modelli riutilizzabili**: un solo modello geometria "carta", texture diverse per ogni Specialità/Competenza/Tappa (vincolo esplicito, vedi `CLAUDE.md` root). Le geometrie sono singleton esportate da `components/three/geometry.ts`; un test verifica che nessun altro file della scena crei geometrie proprie.
-- **Texture**: procedurali (`CanvasTexture` generata dai token materiali di `app/globals.css`), memoizzate a livello di modulo in `components/three/materials/textures.ts`. Sono placeholder di Fase 2: gli asset reali della pipeline PDF (Fase 3) sostituiranno solo le `map`.
+- **Modelli riutilizzabili**: un solo modello geometria "carta", texture diverse per ogni Specialità/Competenza/Tappa (vincolo esplicito, vedi `CLAUDE.md` root). Le geometrie sono singleton esportate da `components/three/geometry.ts`; un test verifica che nessun altro file della scena crei geometrie proprie. Le lastre appoggiate sul piano (carte, taccuino, calendario, foglio, piano stesso) sono estrusioni con angoli raccordati e spigolo smussato: uno spigolo vivo non esiste in natura ed è la smussatura a raccogliere la luce che dà spessore all'oggetto.
+- **Ingombri**: `OBJECT_SIZE` in `geometry.ts` è la fonte unica delle misure di ogni famiglia di oggetti; da lì derivano la quota di appoggio (`restingHeight`) e il volume di presa (`hitScale`), senza costanti da tenere allineate a mano.
+- **Texture**: procedurali (`CanvasTexture` generata dai token materiali di `app/globals.css`), memoizzate a livello di modulo in `components/three/materials/textures.ts`. Oltre al colore, ogni materiale ha rilievo e finitura: le mappe di normali sono derivate da una mappa di altezza disegnata **dallo stesso** tracciato del colore (la venatura del legno è lo stesso solco nelle due mappe), e occlusione/rugosità/metallicità stanno in un'unica texture impacchettata come nel formato glTF. Le carte reali della pipeline P3-T02b sostituiscono solo la `map`.
+- **Materiali**: dichiarati per materiale, non per aspetto, in `components/three/materials/Surfaces.tsx` — legno verniciato, carta, tela, ottone. Un oggetto dichiara di che cosa è fatto; rilievo, rugosità e modo di riflettere arrivano con il materiale.
+- **Illuminazione** — [DEC-020](../.claude/DECISIONS.md#dec-020--resa-realistica-pbr-in-tempo-reale-ambiente-procedurale-ombre-morbide--niente-path-tracing): ambiente procedurale (`Environment` + `Lightformer` di drei, nessun file HDRI) cotto una volta in cubemap; lampada a gas come luce calda dominante con decadimento fisico; finestra fredda come riempimento e sorgente dell'ombra principale; ombre morbide ad area (PCSS) sul livello di qualità alto. Nessun path tracing: la BVH andrebbe ricostruita ad ogni hover e l'immagine sarebbe rumorosa proprio durante l'interazione.
+- **Livelli di qualità**: `alto` e `base`, scelti a runtime in `lib/scene/useSceneCapabilities.ts` (`?q=alto` / `?q=base` per forzarli in verifica). Cambiano risoluzione delle mappe d'ombra, `dpr`, ombre morbide e ombre della lampada — mai il contenuto della scena.
 - **Render loop**: `frameloop="demand"`; le animazioni richiedono i frame con `invalidate()` e smettono appena il movimento è esaurito. Con `?perf=1` il loop resta continuo per misurare il frame rate.
 - **Quale resa dove**: la scena 3D è per desktop/tablet con WebGL; mobile, assenza di WebGL e `prefers-reduced-motion` usano la composizione 2D DOM — [DEC-013](../.claude/DECISIONS.md#dec-013--scena-3d-su-desktoptablet-composizione-2d-dedicata-altrove).
 - **Nessun post-processing**: blur e scurimento del tavolo aperto un oggetto vivono sul layer DOM — [DEC-014](../.claude/DECISIONS.md#dec-014--niente-post-processing-sfocatura-e-scurimento-sul-layer-dom).
 - **Camera**: movimento limitato e prevedibile (focus su oggetto), non una camera libera esplorabile stile videogioco.
 
-**Performance budget** (misurato in sviluppo dall'HUD `components/three/PerfHud.tsx`, verificato dall'E2E `tests/e2e/table.spec.ts`):
+**Performance budget** (picco misurato in sviluppo dalla sonda `components/three/PerfHud.tsx`, soglie in `tests/e2e/budget.ts`, verificate sia sulla sandbox sia sul tavolo autenticato):
 
-| Metrica                          | Soglia          | Misura attuale (scena a riposo) |
-| -------------------------------- | --------------- | ------------------------------- |
-| Draw calls                       | ≤ 25            | 20                              |
-| Triangoli                        | ≤ 2 000         | 636                             |
-| Memoria texture stimata          | ≤ 12 MB         | 10,5 MB                         |
-| Luci che proiettano ombra        | 1 (shadow 1024) | 1                               |
-| Post-processing                  | nessuno         | nessuno                         |
-| Frame rate desktop di riferimento| 60 fps          | da confermare su GPU reale      |
-| Frame rate mobile (P10-T03)      | ≥ 30 fps        | non ancora misurato             |
+| Metrica                           | Soglia            | Misura attuale (tavolo completo, livello alto) |
+| --------------------------------- | ----------------- | ----------------------------------- |
+| Draw calls                        | ≤ 60              | 34                                  |
+| Triangoli                         | ≤ 20 000          | 4 984                               |
+| Memoria texture stimata           | ≤ 24 MB           | 16,9 MB                             |
+| Luci che proiettano ombra (alto)  | 2 (2048 + 1024)   | 2                                   |
+| Luci che proiettano ombra (base)  | 1 (1024)          | 1                                   |
+| Post-processing                   | nessuno           | nessuno                             |
+| Frame rate desktop di riferimento | 60 fps            | da confermare su GPU reale          |
+| Frame rate mobile (P10-T03)       | ≥ 30 fps          | non ancora misurato                 |
+
+Le soglie sono state alzate rispetto alla Fase 2 con [DEC-020](../.claude/DECISIONS.md#dec-020--resa-realistica-pbr-in-tempo-reale-ambiente-procedurale-ombre-morbide--niente-path-tracing): i bordi smussati costano triangoli, le mappe PBR costano memoria, la lampada costa una seconda mappa d'ombra. Il margine tiene conto degli oggetti che il tavolo deve ancora accogliere.
+
+La sonda registra il **picco** e non l'ultimo frame: con `frameloop="demand"` l'ultimo frame disegnato può essere un passaggio ausiliario (la cottura dell'ambiente) i cui contatori non descrivono la scena.
 
 I frame rate non sono misurabili nell'ambiente di sviluppo headless usato finora (WebGL software SwiftShader): restano da verificare su hardware reale in P10-T03.
 

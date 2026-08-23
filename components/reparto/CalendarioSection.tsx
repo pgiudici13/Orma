@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import type { EventoData } from "@/lib/scene/objects";
-import { creaEvento, eliminaEvento, modificaEvento } from "./actions";
+import { creaEvento, eliminaEvento, modificaEvento } from "@/app/reparto/actions";
 
 export function CalendarioSection({
   events,
   isCapoOrAdmin,
+  onMutated,
 }: {
-  events: EventoData[];
+  events: readonly EventoData[];
   isCapoOrAdmin: boolean;
+  /** Chiamata dopo ogni scrittura, per ricaricare la superficie (DEC-021). */
+  onMutated?: () => void;
 }) {
   const [showNewEventForm, setShowNewEventForm] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -62,6 +65,7 @@ export function CalendarioSection({
           action={async (formData) => {
             await creaEvento(formData);
             setShowNewEventForm(false);
+            onMutated?.();
           }}
           className="flex flex-col gap-4 p-5 rounded-[3px]"
           style={{
@@ -273,6 +277,8 @@ export function CalendarioSection({
                 key={ev.id}
                 event={ev}
                 isCapoOrAdmin={isCapoOrAdmin}
+
+                onMutated={onMutated}
                 isEditing={editingEventId === ev.id}
                 onStartEdit={() => setEditingEventId(ev.id)}
                 onCancelEdit={() => setEditingEventId(null)}
@@ -298,6 +304,8 @@ export function CalendarioSection({
                 key={ev.id}
                 event={ev}
                 isCapoOrAdmin={isCapoOrAdmin}
+
+                onMutated={onMutated}
                 isEditing={editingEventId === ev.id}
                 onStartEdit={() => setEditingEventId(ev.id)}
                 onCancelEdit={() => setEditingEventId(null)}
@@ -316,12 +324,14 @@ function EventCard({
   isEditing,
   onStartEdit,
   onCancelEdit,
+  onMutated,
 }: {
   event: EventoData;
   isCapoOrAdmin: boolean;
   isEditing: boolean;
   onStartEdit: () => void;
   onCancelEdit: () => void;
+  onMutated?: () => void;
 }) {
   if (isEditing) {
     return (
@@ -329,6 +339,7 @@ function EventCard({
         action={async (formData) => {
           await modificaEvento(event.id, formData);
           onCancelEdit();
+          onMutated?.();
         }}
         className="flex flex-col gap-4 p-5 rounded-[3px]"
         style={{
@@ -568,6 +579,7 @@ function EventCard({
               action={async () => {
                 if (confirm(`Sei sicuro di voler eliminare l'evento "${event.titolo}"?`)) {
                   await eliminaEvento(event.id);
+                  onMutated?.();
                 }
               }}
             >

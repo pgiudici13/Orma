@@ -103,6 +103,82 @@ function createTexture(
   return texture;
 }
 
+/**
+ * Come `createTexture`, per le mappe che non contengono colore ma dati
+ * (normali, rugosità, occlusione): niente conversione sRGB, che falserebbe i
+ * valori, e nessun ridisegno all'arrivo dei font — qui non c'è testo.
+ */
+function createDataTexture(
+  key: string,
+  width: number,
+  height: number,
+  draw: DrawFn,
+): CanvasTexture {
+  const cached = cache.get(key);
+  if (cached) return cached;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error(`Canvas 2D non disponibile per la texture "${key}"`);
+  }
+
+  draw(ctx, width, height);
+
+  const texture = new CanvasTexture(canvas);
+  texture.anisotropy = 4;
+
+  cache.set(key, texture);
+  allocatedBytes += Math.round(width * height * 4 * 1.34);
+
+  return texture;
+}
+
+/**
+ * Deriva una normal map da una mappa di altezza in scala di grigi (Sobel a 4
+ * campioni). Le coordinate sono cicliche, così una texture pensata per essere
+ * ripetuta non mostra una cucitura sui bordi.
+ *
+ * `strength` è la pendenza: valori bassi per la carta (una fibra si vede
+ * appena), più alti per il legno, dove la venatura è un solco vero.
+ */
+function normalFromHeight(
+  key: string,
+  size: number,
+  drawHeight: DrawFn,
+  strength: number,
+): CanvasTexture {
+  return createDataTexture(key, size, size, (ctx, width, height) => {
+    drawHeight(ctx, width, height);
+
+    const source = ctx.getImageData(0, 0, width, height);
+    const target = ctx.createImageData(width, height);
+    const at = (x: number, y: number) =>
+      source.data[
+        (((y + height) % height) * width + ((x + width) % width)) * 4
+      ] / 255;
+
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const dx = (at(x - 1, y) - at(x + 1, y)) * strength;
+        const dy = (at(x, y - 1) - at(x, y + 1)) * strength;
+        const length = Math.hypot(dx, dy, 1);
+        const index = (y * width + x) * 4;
+
+        target.data[index] = ((dx / length) * 0.5 + 0.5) * 255;
+        target.data[index + 1] = ((dy / length) * 0.5 + 0.5) * 255;
+        target.data[index + 2] = (1 / length) * 255;
+        target.data[index + 3] = 255;
+      }
+    }
+
+    ctx.putImageData(target, 0, 0);
+  });
+}
+
 /** PRNG deterministico: la stessa superficie ha sempre le stesse imperfezioni. */
 function seededRandom(seed: number) {
   let state = seed;
@@ -114,70 +190,187 @@ function seededRandom(seed: number) {
 
 // ---------------------------------------------------------------- legno
 
+const WOOD_SIZE = 1024;
+const WOOD_PLANKS = 5;
+
+type GrainLine = {
+  y: number;
+  amplitude: number;
+  wavelength: number;
+  phase: number;
+  width: number;
+  alpha: number;
+  tone: number;
+  /** Asse di appartenenza: la venatura non attraversa mai una fuga. */
+  plank: number;
+};
+
+type Knot = { x: number; y: number; radius: number };
+
+/**
+ * Disegno della venatura, calcolato una volta sola.
+ *
+ * Colore, rilievo e rugosità del legno devono descrivere le **stesse** fibre:
+ * se ognuno se le generasse per conto proprio, la luce scorrerebbe su solchi
+ * che non coincidono con le venature che si vedono, ed è esattamente ciò che
+ * fa sembrare finto un legno in computer grafica.
+ */
+let woodPattern: {
+  lines: GrainLine[];
+  knots: Knot[];
+  plankShades: number[];
+} | null = null;
+
+function getWoodPattern() {
+  if (woodPattern) return woodPattern;
+
+  const random = seededRandom(20250812);
+  const lines: GrainLine[] = [];
+  const knots: Knot[] = [];
+  // Ogni asse viene da un pezzo di tronco diverso: il tono cambia da una
+  // all'altra, ed è questa differenza a farle leggere come tavole separate
+  // invece che come un unico laminato rigato.
+  const plankShades = Array.from(
+    { length: WOOD_PLANKS },
+    () => random() * 0.16 - 0.06,
+  );
+
+  const plankHeight = WOOD_SIZE / WOOD_PLANKS;
+  for (let i = 0; i < 220; i += 1) {
+    const plank = Math.floor(random() * WOOD_PLANKS);
+    lines.push({
+      // La fibra resta dentro la propria asse, con un margine dalla fuga.
+      y: (plank + 0.08 + random() * 0.84) * plankHeight,
+      amplitude: 2 + random() * 9,
+      wavelength: 140 + random() * 420,
+      phase: random() * Math.PI * 2,
+      tone: 0.2 + random() * 0.5,
+      alpha: 0.18 + random() * 0.34,
+      width: 0.6 + random() * 1.8,
+      plank,
+    });
+  }
+
+  for (let i = 0; i < 6; i += 1) {
+    knots.push({
+      x: random() * WOOD_SIZE,
+      y: random() * WOOD_SIZE,
+      radius: 6 + random() * 14,
+    });
+  }
+
+  woodPattern = { lines, knots, plankShades };
+  return woodPattern;
+}
+
+/** Esegue un disegno confinato alla singola asse. */
+function withinPlank(
+  ctx: CanvasRenderingContext2D,
+  plank: number,
+  width: number,
+  draw: () => void,
+) {
+  const plankHeight = WOOD_SIZE / WOOD_PLANKS;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, plank * plankHeight, width, plankHeight);
+  ctx.clip();
+  draw();
+  ctx.restore();
+}
+
+/** Traccia una fibra: condivisa da colore, altezza e rugosità. */
+function strokeGrainLine(
+  ctx: CanvasRenderingContext2D,
+  line: GrainLine,
+  width: number,
+) {
+  ctx.beginPath();
+  for (let x = 0; x <= width; x += 8) {
+    const offset = Math.sin(x / line.wavelength + line.phase) * line.amplitude;
+    if (x === 0) ctx.moveTo(x, line.y + offset);
+    else ctx.lineTo(x, line.y + offset);
+  }
+  ctx.stroke();
+}
+
+function strokeKnot(
+  ctx: CanvasRenderingContext2D,
+  knot: Knot,
+  ring: number,
+  style: string,
+) {
+  ctx.strokeStyle = style;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.ellipse(
+    knot.x,
+    knot.y,
+    knot.radius * ring * 0.32,
+    knot.radius * ring * 0.5,
+    0.4,
+    0,
+    Math.PI * 2,
+  );
+  ctx.stroke();
+}
+
+/** Ripetizione della texture sul piano: più largo che profondo. */
+function tileWood(texture: CanvasTexture): CanvasTexture {
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  // Senza questo le venature risulterebbero stirate lungo l'asse lungo del
+  // tavolo.
+  texture.repeat.set(1.4, 1);
+  return texture;
+}
+
 export function getWoodTexture(): CanvasTexture {
-  const texture = createTexture("wood", 1024, 1024, (ctx, w, h) => {
+  const texture = createTexture("wood", WOOD_SIZE, WOOD_SIZE, (ctx, w, h) => {
     const base = materialColor("--wood-base");
     const grain = materialColor("--wood-grain");
     const dark = materialColor("--wood-dark");
-    const random = seededRandom(20250812);
+    const { lines, knots, plankShades } = getWoodPattern();
+    const random = seededRandom(778811);
 
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, w, h);
 
-    // Doghe: leggere variazioni di tono lungo l'asse lungo del tavolo.
-    const plankHeight = h / 5;
-    for (let i = 0; i < 5; i += 1) {
-      const shade = mix(base, i % 2 === 0 ? dark : "#ffffff", 0.05);
-      ctx.fillStyle = shade;
+    // Assi: ognuna con il proprio tono, separate da una fuga scura con il
+    // bordo superiore che prende luce, come due tavole accostate.
+    const plankHeight = h / WOOD_PLANKS;
+    for (let i = 0; i < WOOD_PLANKS; i += 1) {
+      const shade = plankShades[i];
+      ctx.fillStyle = mix(base, shade < 0 ? dark : "#ffffff", Math.abs(shade));
       ctx.fillRect(0, i * plankHeight, w, plankHeight);
-      ctx.strokeStyle = mix(base, dark, 0.45);
-      ctx.lineWidth = 1.5;
+
+      ctx.strokeStyle = mix(base, dark, 0.9);
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(0, i * plankHeight);
       ctx.lineTo(w, i * plankHeight);
       ctx.stroke();
-    }
 
-    // Venature: linee sinusoidali sottili, mai perfettamente parallele.
-    for (let i = 0; i < 220; i += 1) {
-      const y = random() * h;
-      const amplitude = 2 + random() * 9;
-      const wavelength = 140 + random() * 420;
-      const phase = random() * Math.PI * 2;
-
-      ctx.strokeStyle = mix(base, grain, 0.2 + random() * 0.5);
-      ctx.globalAlpha = 0.18 + random() * 0.34;
-      ctx.lineWidth = 0.6 + random() * 1.8;
+      ctx.strokeStyle = mix(base, "#ffffff", 0.08);
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      for (let x = 0; x <= w; x += 8) {
-        const offset = Math.sin(x / wavelength + phase) * amplitude;
-        if (x === 0) ctx.moveTo(x, y + offset);
-        else ctx.lineTo(x, y + offset);
-      }
+      ctx.moveTo(0, i * plankHeight + 2);
+      ctx.lineTo(w, i * plankHeight + 2);
       ctx.stroke();
     }
 
-    // Nodi del legno.
+    for (const line of lines) {
+      ctx.strokeStyle = mix(base, grain, line.tone);
+      ctx.globalAlpha = line.alpha;
+      ctx.lineWidth = line.width;
+      withinPlank(ctx, line.plank, w, () => strokeGrainLine(ctx, line, w));
+    }
+
     ctx.globalAlpha = 1;
-    for (let i = 0; i < 6; i += 1) {
-      const cx = random() * w;
-      const cy = random() * h;
-      const radius = 6 + random() * 14;
+    for (const knot of knots) {
       for (let ring = 5; ring > 0; ring -= 1) {
-        ctx.strokeStyle = mix(base, dark, 0.12 * ring);
         ctx.globalAlpha = 0.5;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.ellipse(
-          cx,
-          cy,
-          radius * ring * 0.32,
-          radius * ring * 0.5,
-          0.4,
-          0,
-          Math.PI * 2,
-        );
-        ctx.stroke();
+        strokeKnot(ctx, knot, ring, mix(base, dark, 0.12 * ring));
       }
     }
 
@@ -199,13 +392,109 @@ export function getWoodTexture(): CanvasTexture {
     ctx.globalAlpha = 1;
   });
 
-  texture.wrapS = RepeatWrapping;
-  texture.wrapT = RepeatWrapping;
-  // Il piano è più largo che profondo: senza questo le venature risulterebbero
-  // stirate lungo l'asse lungo del tavolo.
-  texture.repeat.set(1.4, 1);
+  return tileWood(texture);
+}
 
-  return texture;
+/** Rilievo delle fibre: le venature sono solchi, i nodi sono avvallamenti. */
+export function getWoodNormalTexture(): CanvasTexture {
+  const texture = normalFromHeight(
+    "wood-normal",
+    WOOD_SIZE / 2,
+    (ctx, w, h) => {
+      const { lines, knots } = getWoodPattern();
+      const scale = w / WOOD_SIZE;
+
+      ctx.fillStyle = "#808080";
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.save();
+      ctx.scale(scale, scale);
+
+      // Fuga fra le assi: un solco vero, l'unico rilievo marcato del piano.
+      const plankHeight = WOOD_SIZE / WOOD_PLANKS;
+      for (let i = 0; i < WOOD_PLANKS; i += 1) {
+        ctx.strokeStyle = "rgb(40,40,40)";
+        ctx.lineWidth = 3 / scale;
+        ctx.beginPath();
+        ctx.moveTo(0, i * plankHeight);
+        ctx.lineTo(WOOD_SIZE, i * plankHeight);
+        ctx.stroke();
+      }
+
+      for (const line of lines) {
+        // Più la fibra è scura, più il solco è profondo. Il solco resta
+        // superficiale: una venatura è una depressione di frazioni di
+        // millimetro, non una scanalatura.
+        const depth = Math.round(128 - line.tone * 34);
+        ctx.strokeStyle = `rgb(${depth},${depth},${depth})`;
+        ctx.globalAlpha = line.alpha * 0.7;
+        ctx.lineWidth = line.width / scale;
+        withinPlank(ctx, line.plank, WOOD_SIZE, () =>
+          strokeGrainLine(ctx, line, WOOD_SIZE),
+        );
+      }
+
+      ctx.globalAlpha = 0.45;
+      for (const knot of knots) {
+        for (let ring = 5; ring > 0; ring -= 1) {
+          strokeKnot(ctx, knot, ring, `rgb(104,104,104)`);
+        }
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    },
+    1.1,
+  );
+
+  return tileWood(texture);
+}
+
+/**
+ * Finitura del legno, impacchettata in un'unica texture come nel formato glTF:
+ * rosso = occlusione ambientale, verde = rugosità, blu = metallicità. Tre mappe
+ * in una sola allocazione di memoria.
+ *
+ * La vernice si consuma sulle fibre in rilievo e resta lucida negli avvallamenti:
+ * la venatura si vede quindi anche in un riflesso, non solo nel colore.
+ */
+export function getWoodSurfaceTexture(): CanvasTexture {
+  const texture = createDataTexture(
+    "wood-surface",
+    WOOD_SIZE / 2,
+    WOOD_SIZE / 2,
+    (ctx, w, h) => {
+      const { lines, knots } = getWoodPattern();
+      const scale = w / WOOD_SIZE;
+
+      // Base: nessuna occlusione (R alto), vernice satinata (G medio),
+      // nessun metallo (B a zero).
+      ctx.fillStyle = "rgb(255,150,0)";
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.save();
+      ctx.scale(scale, scale);
+      for (const line of lines) {
+        // Fibra più opaca e un filo di ombra propria dentro il solco.
+        ctx.strokeStyle = "rgb(225,205,0)";
+        ctx.globalAlpha = line.alpha * 0.9;
+        ctx.lineWidth = line.width / scale;
+        withinPlank(ctx, line.plank, WOOD_SIZE, () =>
+          strokeGrainLine(ctx, line, WOOD_SIZE),
+        );
+      }
+
+      ctx.globalAlpha = 0.5;
+      for (const knot of knots) {
+        for (let ring = 5; ring > 0; ring -= 1) {
+          strokeKnot(ctx, knot, ring, "rgb(200,215,0)");
+        }
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    },
+  );
+
+  return tileWood(texture);
 }
 
 // ----------------------------------------------------------------- carta
@@ -225,6 +514,86 @@ function paperGrain(
     ctx.fillRect(random() * w, random() * h, 1.4, 1.4);
   }
   ctx.globalAlpha = 1;
+}
+
+/**
+ * Fibra della carta: rilievo minuto e irregolare, ripetuto su tutti gli oggetti
+ * di carta del tavolo. È una sola texture piccola condivisa da carte, foglio e
+ * calendario — la fibra della carta non cambia da un foglio all'altro, e
+ * generarne una per oggetto sprecherebbe memoria per una differenza invisibile.
+ */
+export function getPaperNormalTexture(): CanvasTexture {
+  const texture = normalFromHeight(
+    "paper-normal",
+    256,
+    (ctx, w, h) => {
+      const random = seededRandom(5150);
+
+      ctx.fillStyle = "#808080";
+      ctx.fillRect(0, 0, w, h);
+
+      // Fibre corte orientate a caso, come in un foglio a mano.
+      for (let i = 0; i < 2400; i += 1) {
+        const x = random() * w;
+        const y = random() * h;
+        const length = 1 + random() * 5;
+        const angle = random() * Math.PI;
+        const tone = Math.round(110 + random() * 60);
+
+        ctx.strokeStyle = `rgb(${tone},${tone},${tone})`;
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    },
+    0.55,
+  );
+
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  texture.repeat.set(5, 7);
+
+  return texture;
+}
+
+/** Trama della tela del taccuino: ordito e trama regolari, in rilievo. */
+export function getFabricNormalTexture(): CanvasTexture {
+  const texture = normalFromHeight(
+    "fabric-normal",
+    256,
+    (ctx, w, h) => {
+      ctx.fillStyle = "#707070";
+      ctx.fillRect(0, 0, w, h);
+
+      const step = 8;
+      ctx.lineWidth = step / 2;
+      for (let y = 0; y < h; y += step) {
+        ctx.strokeStyle = "#c8c8c8";
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+      for (let x = 0; x < w; x += step) {
+        ctx.strokeStyle = "#9a9a9a";
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+    },
+    1.6,
+  );
+
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  texture.repeat.set(6, 8);
+
+  return texture;
 }
 
 const VARIANT_ACCENT: Record<string, () => string> = {
@@ -431,6 +800,143 @@ export function getCompassTexture(): CanvasTexture {
     ctx.textAlign = "center";
     ctx.fillText("N", cx, 26);
     ctx.textAlign = "start";
+  });
+}
+
+/**
+ * Copertina di un oggetto da tavolo: un fondo di materiale, una toppa di carta
+ * incollata sopra e una scritta a mano.
+ *
+ * È la stessa costruzione per l'album dei distintivi, il quaderno delle
+ * Competenze, la rubrica, la tessera e la busta: cambiano colore e parola, non
+ * il modo in cui l'oggetto è fatto. Una sola funzione invece di cinque disegni
+ * quasi identici — e una sola cosa da correggere quando la resa non convince.
+ */
+export function getCoverTexture(
+  key: string,
+  {
+    base,
+    label,
+    labelPaper = true,
+    seed = 4242,
+  }: { base: string; label: string; labelPaper?: boolean; seed?: number },
+): CanvasTexture {
+  return createTexture(`cover:${key}`, 256, 320, (ctx, w, h) => {
+    const aged = materialColor("--paper-aged");
+    const ink = materialColor("--ink");
+    const random = seededRandom(seed);
+
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, w, h);
+
+    // Usura: il materiale non è mai uniforme, soprattutto sui bordi.
+    for (let i = 0; i < 500; i += 1) {
+      ctx.globalAlpha = 0.04 + random() * 0.07;
+      ctx.fillStyle = random() > 0.5 ? "#ffffff" : ink;
+      ctx.fillRect(random() * w, random() * h, 1.6, 1.6);
+    }
+    ctx.globalAlpha = 1;
+
+    if (labelPaper) {
+      const px = 34;
+      const py = 96;
+      const pw = w - 68;
+      const ph = 92;
+
+      ctx.fillStyle = aged;
+      ctx.fillRect(px, py, pw, ph);
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = mix(aged, ink, 0.4);
+      ctx.lineWidth = 1.4;
+      ctx.strokeRect(px + 6, py + 6, pw - 12, ph - 12);
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = mix(aged, ink, 0.8);
+      ctx.font = "500 26px 'Newsreader', Georgia, serif";
+      ctx.textAlign = "center";
+      ctx.fillText(label, w / 2, py + ph / 2 + 9, pw - 28);
+      ctx.textAlign = "start";
+    } else {
+      // Scritta direttamente sul materiale: deve staccare dal fondo, che qui è
+      // chiaro (tessera, busta) — non schiarirla ancora.
+      ctx.fillStyle = mix(base, ink, 0.72);
+      ctx.font = "500 24px 'Newsreader', Georgia, serif";
+      ctx.textAlign = "center";
+      ctx.fillText(label, w / 2, h / 2 + 8, w - 40);
+      ctx.textAlign = "start";
+    }
+  });
+}
+
+/** Legno della cassetta di Reparto: assi verticali, più scuro del piano. */
+export function getCassettaTexture(): CanvasTexture {
+  return createTexture("cassetta", 256, 256, (ctx, w, h) => {
+    const base = mix(
+      materialColor("--wood-base"),
+      materialColor("--wood-dark"),
+      0.4,
+    );
+    const dark = materialColor("--wood-dark");
+    const random = seededRandom(31337);
+
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, w, h);
+
+    // Assi verticali con la fuga in mezzo.
+    const boards = 4;
+    for (let i = 1; i < boards; i += 1) {
+      ctx.strokeStyle = mix(base, dark, 0.75);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo((i * w) / boards, 0);
+      ctx.lineTo((i * w) / boards, h);
+      ctx.stroke();
+    }
+
+    // Venatura verticale e usura sugli spigoli.
+    for (let i = 0; i < 90; i += 1) {
+      const x = random() * w;
+      ctx.strokeStyle = mix(base, dark, 0.2 + random() * 0.4);
+      ctx.globalAlpha = 0.2 + random() * 0.3;
+      ctx.lineWidth = 0.6 + random() * 1.4;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      for (let y = 0; y <= h; y += 12) {
+        ctx.lineTo(x + Math.sin(y / 40 + i) * 2.5, y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  });
+}
+
+/**
+ * Drappo del guidone: due bande di colore, nessun emblema.
+ *
+ * Non riproduce e non simula alcuna grafica ufficiale AGESCI (`CLAUDE.md`):
+ * è un guidone generico, come lo sarebbe un pezzo di stoffa cucito in sede.
+ */
+export function getGuidoneTexture(): CanvasTexture {
+  return createTexture("guidone", 256, 192, (ctx, w, h) => {
+    const fabric = materialColor("--fabric-base");
+    const accent = materialColor("--accent");
+    const aged = materialColor("--paper-aged");
+
+    ctx.fillStyle = fabric;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.fillStyle = accent;
+    ctx.fillRect(0, h * 0.42, w, h * 0.16);
+
+    // Bordo cucito lungo il lato dell'asta.
+    ctx.strokeStyle = mix(fabric, aged, 0.5);
+    ctx.setLineDash([6, 6]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(6, 4);
+    ctx.lineTo(6, h - 4);
+    ctx.stroke();
+    ctx.setLineDash([]);
   });
 }
 
