@@ -21,9 +21,9 @@ export function RichiediRepartoForm({
           name="repartoId"
           required
           defaultValue=""
-          className="rounded-[3px] px-3 py-2 font-sans text-sm"
+          className="cursor-pointer rounded-[3px] px-3 py-2 font-sans text-sm"
           style={{
-            backgroundColor: "var(--paper-base)",
+            backgroundColor: "var(--paper-aged)",
             border:
               "1px solid color-mix(in srgb, var(--wood-dark) 30%, transparent)",
             color: "var(--ink)",
@@ -49,8 +49,11 @@ export function RichiediRepartoForm({
       <button
         type="submit"
         disabled={pending}
-        className="cursor-pointer self-start font-sans text-[11px] tracking-wide underline underline-offset-2 disabled:opacity-50"
-        style={{ color: "var(--accent)" }}
+        className="cursor-pointer self-start rounded-[2px] px-4 py-2 font-sans text-xs font-medium tracking-wide disabled:opacity-50"
+        style={{
+          backgroundColor: "var(--accent)",
+          color: "#fff",
+        }}
       >
         {pending ? "Invio…" : "Richiedi associazione"}
       </button>

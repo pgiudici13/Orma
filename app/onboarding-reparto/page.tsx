@@ -38,41 +38,57 @@ export default async function OnboardingRepartoPage() {
   const inAttesa = ultimaRichiesta?.stato === "in_attesa";
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <p
-        className="font-sans text-[10px] tracking-[0.16em] uppercase"
-        style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+    <main
+      className="flex min-h-full flex-1 items-center justify-center px-6 py-16"
+      style={{
+        backgroundColor: "color-mix(in srgb, var(--wood-dark) 88%, black)",
+      }}
+    >
+      <div
+        className="w-full max-w-md rounded-[3px] p-8 shadow-sm"
+        style={{
+          backgroundColor: "var(--paper-base)",
+          border:
+            "1px solid color-mix(in srgb, var(--wood-dark) 22%, transparent)",
+        }}
       >
-        Prima di entrare
-      </p>
-      <h1
-        className="font-serif text-3xl leading-tight"
-        style={{ color: "var(--ink)" }}
-      >
-        Associazione al Reparto
-      </h1>
-
-      {inAttesa ? (
         <p
-          className="mt-4 font-sans text-sm leading-relaxed"
-          style={{ color: "color-mix(in srgb, var(--ink) 82%, transparent)" }}
+          className="font-sans text-[10px] tracking-[0.16em] uppercase"
+          style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
         >
-          La tua richiesta è in attesa di approvazione da parte di un admin.
-          Riprova più tardi.
+          Prima di entrare
         </p>
-      ) : (
-        <>
+        <h1
+          className="font-serif text-3xl leading-tight"
+          style={{ color: "var(--ink)" }}
+        >
+          Associazione al Reparto
+        </h1>
+
+        {inAttesa ? (
           <p
             className="mt-4 font-sans text-sm leading-relaxed"
             style={{ color: "color-mix(in srgb, var(--ink) 82%, transparent)" }}
           >
-            {ultimaRichiesta?.stato === "rifiutata"
-              ? "La tua richiesta precedente è stata rifiutata. Puoi inviarne una nuova."
-              : "Per accedere al tuo tavolo, richiedi l'associazione al tuo Reparto."}
+            La tua richiesta è in attesa di approvazione da parte di un admin.
+            Riprova più tardi.
           </p>
-          <RichiediRepartoForm reparti={reparti ?? []} />
-        </>
-      )}
+        ) : (
+          <>
+            <p
+              className="mt-4 font-sans text-sm leading-relaxed"
+              style={{
+                color: "color-mix(in srgb, var(--ink) 82%, transparent)",
+              }}
+            >
+              {ultimaRichiesta?.stato === "rifiutata"
+                ? "La tua richiesta precedente è stata rifiutata. Puoi inviarne una nuova."
+                : "Per accedere al tuo tavolo, richiedi l'associazione al tuo Reparto."}
+            </p>
+            <RichiediRepartoForm reparti={reparti ?? []} />
+          </>
+        )}
+      </div>
     </main>
   );
 }
