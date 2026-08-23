@@ -153,7 +153,7 @@ function MieiMaestri({ data }: { data: MaestroVoce[] }) {
               <span
                 className="ml-2 text-[10px] tracking-wide uppercase"
                 style={{
-                  color: "color-mix(in srgb, var(--ink) 55%, transparent)",
+                  color: "var(--ink-muted-soft)",
                 }}
               >
                 esterno
@@ -162,7 +162,7 @@ function MieiMaestri({ data }: { data: MaestroVoce[] }) {
           </span>
           <span
             className="shrink-0 font-serif text-[13px]"
-            style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+            style={{ color: "var(--ink-muted-strong)" }}
           >
             {maestro.per}
           </span>
@@ -320,14 +320,14 @@ function RisultatoMaestro({
 
       <span
         className="font-sans text-[11px] leading-relaxed"
-        style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+        style={{ color: "var(--ink-muted-strong)" }}
       >
         {maestro.specialitaNomi.join(", ") || "—"}
       </span>
 
       <span
         className="font-sans text-[11px] leading-relaxed"
-        style={{ color: "color-mix(in srgb, var(--ink) 55%, transparent)" }}
+        style={{ color: "var(--ink-muted-soft)" }}
       >
         {luogo || "Località non indicata"}
       </span>

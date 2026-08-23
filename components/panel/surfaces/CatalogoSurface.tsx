@@ -117,7 +117,7 @@ function VoceCatalogo({
         {voce.descrizione ? (
           <span
             className="font-sans text-[11px] leading-relaxed"
-            style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+            style={{ color: "var(--ink-muted-strong)" }}
           >
             {voce.descrizione}
           </span>
@@ -127,7 +127,7 @@ function VoceCatalogo({
       {voce.stato ? (
         <span
           className="font-sans text-[10px] tracking-wide uppercase"
-          style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+          style={{ color: "var(--ink-muted)" }}
         >
           {STATO_LABEL[voce.stato]}
         </span>

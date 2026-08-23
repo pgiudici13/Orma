@@ -38,7 +38,7 @@ export default async function RichiesteRepartoPage() {
     <PaperPage>
       <p
         className="font-sans text-[10px] tracking-[0.16em] uppercase"
-        style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+        style={{ color: "var(--ink-muted)" }}
       >
         Admin
       </p>
@@ -53,7 +53,7 @@ export default async function RichiesteRepartoPage() {
         {(richieste ?? []).length === 0 ? (
           <p
             className="font-sans text-sm"
-            style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+            style={{ color: "var(--ink-muted)" }}
           >
             Nessuna richiesta in attesa.
           </p>
@@ -80,7 +80,7 @@ export default async function RichiesteRepartoPage() {
               <p
                 className="mt-1 font-sans text-xs"
                 style={{
-                  color: "color-mix(in srgb, var(--ink) 60%, transparent)",
+                  color: "var(--ink-muted)",
                 }}
               >
                 Richiesta il {richiesta.created_at.slice(0, 10)}

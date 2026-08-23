@@ -16,6 +16,13 @@
   --ink: #2c2216;
   --accent: #9c3b2b;
 
+  /* Testo attenuato su --paper-base: percentuali più basse di --ink scendevano
+     sotto il contrasto minimo WCAG AA (4.5:1) — vedi P10-T02 e tests/e2e/accessibility.spec.ts.
+     Le tre soglie qui sotto restano sempre ≥4.5:1 su --paper-base. */
+  --ink-muted-soft: color-mix(in srgb, var(--ink) 74%, transparent);
+  --ink-muted: color-mix(in srgb, var(--ink) 78%, transparent);
+  --ink-muted-strong: color-mix(in srgb, var(--ink) 82%, transparent);
+
   /* Lampada a gas: ottone lucido e brunito, vetro affumicato, fiamma. */
   --brass-base: #b08a4f;
   --brass-dark: #7c5f34;

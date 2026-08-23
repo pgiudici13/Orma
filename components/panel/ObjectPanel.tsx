@@ -120,7 +120,7 @@ function PanelSheet({
         <div>
           <p
             className="font-sans text-[10px] tracking-[0.16em] uppercase"
-            style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+            style={{ color: "var(--ink-muted)" }}
           >
             {object.label}
           </p>
@@ -139,7 +139,7 @@ function PanelSheet({
           aria-label="Chiudi e torna al tavolo"
           className="-mt-1 shrink-0 cursor-pointer rounded-[2px] px-2 py-1 font-sans text-xs tracking-wide outline-offset-2 focus-visible:outline-2"
           style={{
-            color: "color-mix(in srgb, var(--ink) 70%, transparent)",
+            color: "var(--ink-muted-strong)",
             border:
               "1px solid color-mix(in srgb, var(--wood-dark) 22%, transparent)",
             outlineColor: "var(--accent)",

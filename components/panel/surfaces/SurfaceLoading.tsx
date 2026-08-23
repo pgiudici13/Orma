@@ -9,7 +9,7 @@ export function SurfaceLoading({ label }: { label: string }) {
   return (
     <p
       className="mt-6 font-serif text-sm italic"
-      style={{ color: "color-mix(in srgb, var(--ink) 55%, transparent)" }}
+      style={{ color: "var(--ink-muted-soft)" }}
       role="status"
     >
       {label}

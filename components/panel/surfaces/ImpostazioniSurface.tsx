@@ -38,7 +38,7 @@ export function ImpostazioniSurface() {
         <dl className="font-sans text-sm">
           <dt
             className="text-[11px] tracking-wide uppercase"
-            style={{ color: "color-mix(in srgb, var(--ink) 55%, transparent)" }}
+            style={{ color: "var(--ink-muted-soft)" }}
           >
             Data di nascita
           </dt>
@@ -48,7 +48,7 @@ export function ImpostazioniSurface() {
 
           <dt
             className="mt-4 text-[11px] tracking-wide uppercase"
-            style={{ color: "color-mix(in srgb, var(--ink) 55%, transparent)" }}
+            style={{ color: "var(--ink-muted-soft)" }}
           >
             Reparto
           </dt>
@@ -168,7 +168,7 @@ function MaestroForm({
         </select>
         <span
           className="text-[11px]"
-          style={{ color: "color-mix(in srgb, var(--ink) 55%, transparent)" }}
+          style={{ color: "var(--ink-muted-soft)" }}
         >
           Tieni premuto Ctrl (⌘ su Mac) per sceglierne più d&apos;una.
         </span>
