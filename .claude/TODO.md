@@ -525,23 +525,62 @@ Chiedeva di misurare frame rate/uso GPU su device mobile reale — mai eseguibil
 
 ## Phase 11 — Production QA
 
-### P11-T01 — Verifica end-to-end dei flussi critici
+> Riscritta il 2026-08-24: la versione precedente copriva solo il flusso Specialità della Fase 3 e non rifletteva le fasi 5-9 (Reparto, Maestri, Archivio, Admin). Vedi l'analisi che ha portato alla riscrittura in conversazione — nessuna nuova DEC, è un'estensione dello scope già previsto per questa fase, non una decisione architetturale.
 
-- **Obiettivo**: login → tavolo → apertura carta Specialità → segna progresso → nota → chiusura, senza errori console.
-- **Dipendenze**: tutte le fasi precedenti.
-- **Criteri di completamento**: flusso completo verificato manualmente e via test E2E.
-- **Test necessari**: suite E2E completa (Playwright o equivalente scelto in DEC-006).
+### P11-T01 — Verifica E2E dei flussi critici per ruolo
 
-### P11-T02 — Revisione privacy/RLS pre-produzione
+- **Obiettivo**: verificare senza errori console ogni flusso principale del prodotto per ciascun ruolo (E/G, Capo, admin), non solo il percorso Specialità originario.
+- **Dipendenze**: tutte le fasi precedenti (2-9).
+- **Flussi da coprire** (elenco esplicito, sostituisce il singolo flusso precedente):
+  1. **E/G**: login → tavolo → apri carta (Specialità/Competenza/Tappa) → segna completata → nota (crea/modifica/elimina) → associa Maestro (interno via ricerca globale, esterno via form) → chiusura. Parzialmente già coperto da `tests/e2e/table.spec.ts`/`tableInteraction.spec.ts`.
+  2. **Registrazione**: form → accettazione privacy → percorso adulto (nessun consenso richiesto) e percorso minorenne (email di consenso genitoriale → link → conferma → sblocco).
+  3. **Onboarding Reparto**: richiesta di associazione → stato "in attesa" → approvazione da un Capo o admin → accesso sbloccato.
+  4. **Reparto — Squadriglie**: crea, rinomina, elimina, assegna/sposta membro.
+  5. **Reparto — Calendario**: crea, modifica, elimina evento; verifica comparsa sia sull'oggetto calendario del tavolo sia in `/reparto`.
+  6. **Reparto — Archivio**: crea luogo/uscita/campo, associa partecipanti/Squadriglie, carica foto/documento, elimina (con la conferma introdotta il 2026-08-24).
+  7. **Maestri**: attiva/disattiva visibilità dalla tessera, ricerca globale con filtri, associazione a una Specialità in corso.
+  8. **Admin**: decide una richiesta Reparto (approva/rifiuta); verifica che un non-admin non veda `/admin`.
+- **Criteri di completamento**: ognuno degli 8 flussi verificato manualmente e, dove le credenziali lo permettono, via test E2E automatizzato.
+- **Test necessari**: estendere `tests/e2e/` con almeno un file per Reparto/Maestri/Admin (oggi coperti solo da unit test, non E2E). I flussi 4-8 richiedono un utente Capo e un utente admin nel progetto Supabase reale: creare credenziali di test dedicate e documentarle come nuove env var (`E2E_CAPO_EMAIL`/`E2E_CAPO_PASSWORD`, `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD`), stesso pattern di `E2E_EMAIL`/`E2E_PASSWORD` già esistente (si saltano da soli senza credenziali).
+- **Stato**: non iniziato.
 
-- **Obiettivo**: ultima verifica che nessun dato privato sia esposto da API pubbliche non protette (`docs/PERMISSIONS.md`).
+### P11-T02 — Revisione sicurezza/privacy end-to-end
+
+- **Obiettivo**: andare oltre "nessun advisor Supabase aperto" — verificare anche i pattern applicativi attorno a RLS che `get_advisors` non copre (la code review del 2026-08-24 ha trovato esattamente questo tipo di problema: errori Supabase ignorati, upload senza validazione, gap RLS sui join).
 - **Dipendenze**: P10-T01.
-- **Criteri di completamento**: nessun advisor di sicurezza Supabase critico aperto.
-- **Test necessari**: `get_advisors` (Supabase) pulito o eccezioni documentate.
+- **Criteri di completamento**:
+  1. `get_advisors` (security + performance) pulito, o eccezioni esplicitamente documentate — oggi: solo "Leaked Password Protection" e i `SECURITY DEFINER` intenzionali (`cerca_maestri`, `membri_reparto`, ecc., già motivati in `DECISIONS.md`).
+  2. Ogni Server Action in `app/actions/*.ts` e `app/*/actions.ts` verificata per: identità sempre da `auth.getUser()` server-side (mai da un id passato dal client); ogni `{ error }` di Supabase controllato e propagato, mai ignorato; upload file validati per estensione/tipo.
+  3. `tests/unit/rls/*.rls.test.ts` eseguiti almeno una volta con credenziali reali (`RLS_TEST_*`), non solo "skipped" come avviene di default.
+  4. Nessuna chiave privilegiata (`SUPABASE_SECRET_KEY`, `RESEND_API_KEY`) referenziata fuori da `lib/supabase/admin.ts`/`lib/resend.ts` (grep di verifica).
+  5. Flusso di consenso genitoriale verificato end-to-end: un profilo `in_attesa` non accede a nessuna funzionalità applicativa oltre `/attesa-consenso` (DEC-010).
+- **Test necessari**: `get_advisors` via MCP, grep mirati sui punti 2/4, esecuzione manuale della suite RLS con credenziali reali.
+- **Stato**: non iniziato — la base di codice è già stata portata a questo standard dalla code review del 2026-08-24 (vedi `CORRECTIONS.md`), manca solo l'esecuzione formale di questo task come chiusura verificabile.
 
 ### P11-T03 — Go-live checklist
 
-- **Obiettivo**: variabili d'ambiente di produzione, dominio, monitoraggio errori minimo.
+- **Obiettivo**: lista di verifica puntuale prima del primo deploy realmente pubblico, non una descrizione generica.
 - **Dipendenze**: tutte.
-- **Criteri di completamento**: deploy di produzione stabile, rollback plan noto.
-- **Test necessari**: smoke test post-deploy.
+- **Criteri di completamento** (ogni punto va verificato esplicitamente, non assunto):
+  1. Env var di produzione su Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_SITE_URL` (dominio reale, non `localhost`).
+  2. "Leaked Password Protection" abilitata su Supabase Auth (dashboard) — unico advisor noto non chiudibile via migrazione.
+  3. Header di sicurezza (`next.config.ts`, aggiunti il 2026-08-24) verificati in produzione con una richiesta reale (`curl -I`), non solo in locale.
+  4. Dominio: confermare esplicitamente se resta `orma-scout.vercel.app` o se va configurato un dominio custom — decisione del proprietario del progetto, non implicita.
+  5. Pagine legali raggiungibili in produzione: `/privacy` (già linkata dal form di registrazione), checkbox di consenso obbligatorio verificato anche in produzione, non solo in sviluppo.
+  6. Error monitoring: decisione esplicita — oggi solo `@vercel/analytics`/`@vercel/speed-insights` (metriche, non errori applicativi); scegliere se integrare un error tracker dedicato o dichiarare consapevolmente che i log delle Vercel Function bastano alla scala attuale.
+  7. Backup/recovery: verificare cosa offre il piano Supabase attivo (piano free — point-in-time recovery tipicamente assente/limitato) e documentare la procedura in caso di perdita dati.
+  8. Rollback: Vercel offre un rollback nativo a un deployment precedente — verificare che la procedura sia nota; per il DB la regola resta sempre una nuova migrazione correttiva, mai un downgrade dello schema (coerente con la Fase 10, dove non si è mai toccata una migrazione passata).
+  9. Smoke test post-deploy: gli stessi flussi critici di P11-T01, eseguiti manualmente sul dominio di produzione appena deployato.
+- **Test necessari**: smoke test manuale post-deploy sul dominio reale.
+- **Stato**: non iniziato.
+
+### P11-T04 — QA manuale multi-ruolo e multi-browser/device
+
+- **Obiettivo**: coprire ciò che l'E2E automatizzato non copre strutturalmente — `playwright.config.ts` testa solo un progetto Chromium desktop (1440×900), nessun Firefox/Safari/viewport mobile reale.
+- **Dipendenze**: P11-T01.
+- **Criteri di completamento**:
+  1. Verifica manuale su almeno un browser mobile reale (Safari iOS e Chrome Android, o equivalenti): la scena 3D è esclusa da mobile per design (DEC-013), quindi qui si verifica la composizione 2D dedicata (`TableFlat`) e la sua usabilità reale — non il frame rate 3D, la cui verifica è stata rimossa dal piano (DEC-025).
+  2. Verifica manuale su almeno un browser desktop diverso da Chromium (Firefox e/o Safari), sia per la scena 3D sia per la composizione 2D.
+  3. Verifica manuale con almeno 4 profili distinti: un E/G normale, un E/G minorenne in attesa di consenso, un Capo, un admin — stesso motivo del punto su credenziali multiple in P11-T01, qui a livello di sessione manuale completa (non solo un singolo flusso).
+- **Test necessari**: sessione di test manuale strutturata (checklist), non automatizzabile con la configurazione Playwright attuale senza investimento aggiuntivo (progetti `webkit`/`firefox`/viewport mobile in `playwright.config.ts`).
+- **Stato**: non iniziato.
