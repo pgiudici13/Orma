@@ -64,7 +64,7 @@ Supabase (Postgres + Auth + Storage + RLS)
 - **Backend**: Supabase — Postgres, Supabase Auth, Supabase Storage, Row Level Security.
 - **Deployment**: Vercel per il frontend/edge, Supabase Cloud per il backend.
 
-Nessun repository di codice esiste ancora: questa è l'architettura target, non lo stato attuale (vedi §8).
+Questa architettura è ormai lo stato attuale del progetto, non solo il target — vedi §12 (Deployment) per i dettagli reali di Vercel/Supabase.
 
 ## 6. Struttura del progetto (attuale)
 
@@ -166,11 +166,13 @@ Limiti dichiarati: le superfici `taccuino` e `foglio` mostrano ancora i segnapos
 
 **Deploy**: la migrazione `20260823120000_archivio_reparto.sql` risulta applicata al progetto Supabase reale — stessa nota stale di Fase 8. Avvisi introdotti e non risolti: `unindexed_foreign_keys` (7 FK senza indice) e `auth_rls_initplan` (7 policy `*_select_reparto`, dettaglio in `TODO.md`). Chiuso con lo stesso fix di Fase 8.
 
-**Nota non correlata**: il progetto reale ha anche una migrazione `20260823172537_profiles_reparto_visibility_fix` (due nuove funzioni `SECURITY DEFINER`, `membri_reparto()`/`stesso_reparto_attivo()`) non scritta in questa sessione e assente dal repository locale — da chiarire con chi l'ha applicata prima di considerare il repository sincronizzato col progetto reale (dettaglio in `TODO.md`).
+**Nota (chiarita, 2026-08-24)**: la migrazione `20260823172537_profiles_reparto_visibility_fix` proveniva da una sessione parallela in un worktree separato (Fase 10), mergiata in `main` mentre questa sessione lavorava su un altro worktree; acquisita tramite `git merge`, che ha richiesto riscrivere `lib/queries/reparto.ts` per usare `membri_reparto()` invece di una select diretta su `profiles`. Repository e progetto reale ora sincronizzati (dettaglio in `TODO.md` e `.claude/CORRECTIONS.md`).
 
 Limite dichiarato (Fase 7): nessun test RLS automatizzato copre l'isolamento positivo cross-Reparto per un Capo reale — `ruolo`/`reparto_id`/`squadriglia_id` sono scrivibili solo da SQL diretto o da `decidi_richiesta_reparto()` (gated a sua volta su `is_admin`/`is_capo_reparto`, circolare per un bootstrap in test), stesso limite già presente per `is_admin` (mai testato automaticamente). Vedi `.claude/CORRECTIONS.md`. Verificato invece con introspezione diretta delle policy/funzioni applicate (MCP `execute_sql`).
 
 **Fase 10 (Security / Accessibility / Performance), P10-T01/T02 completati, P10-T03 aperto**: audit RLS completo (P10-T01) su tutte le 24 tabelle `public.*` via introspezione diretta (`pg_policies`, `information_schema.routine_privileges`) — trovata e corretta una fuga di colonne reale in `profiles_select_own` (DEC-018), che esponeva `data_nascita`/`genitore_email` a chiunque nello stesso Reparto perché la RLS filtra righe, non colonne; sostituita da `stesso_reparto_attivo()`/`membri_reparto()` (SECURITY DEFINER, stesso pattern di `cerca_maestri`), migrazione `20260823172537_profiles_reparto_visibility_fix.sql` applicata al progetto reale. Audit di accessibilità (P10-T02) con `@axe-core/playwright` su pagine pubbliche e su ognuno dei 13 oggetti del tavolo (`tests/e2e/accessibility.spec.ts`, via `/tavolo-dev`): trovata e corretta una textarea senza etichetta accessibile, e un contrasto testo insufficiente sistemico (`color-mix(in srgb, var(--ink) N%, transparent)` in 16 file, fino a ~2.7:1 su `--paper-base`) risolto con tre token centralizzati in `app/globals.css` verificati per campionamento pixel (axe-core stesso non interpreta correttamente `color-mix()` — dettaglio in `.claude/CORRECTIONS.md`). P10-T03 (frame rate reali su device mobile) resta non verificabile in questo ambiente: richiede hardware fisico o un simulatore con GPU reale.
+
+**Addendum P10-T01 (2026-08-24, code review indipendente)**: l'audit verificava la presenza di policy esplicite, non la correttezza di ogni condizione — trovati e corretti 3 problemi non coperti da quel criterio: policy INSERT delle tabelle di join dell'archivio che non verificavano il Reparto della riga referenziata (`20260824090000_archivio_partecipanti_reparto_fix.sql`), `has_active_consent()` mancante sulle policy di scrittura Capo (`20260824110000_rls_capo_has_active_consent.sql`), `auth.uid()` non wrappato su `profiles_insert_own`/`update_own` mai incluse nei giri di fix performance precedenti (`20260824122455_profiles_own_rls_perf_fix.sql`). Tutte applicate al progetto reale, `get_advisors` confermato pulito. Dettaglio completo in `TODO.md` e `.claude/CORRECTIONS.md`. Inoltre, nella stessa sessione: chiusi 4 problemi minori residui dalla review (gestione errori incoerente in `personalProgress.ts`, `revalidatePath` mancante su Squadriglie, `window.confirm()` esteso a tutte le eliminazioni irreversibili, stile inline duplicato in `CalendarioSection`/`SquadriglieSection` fattorizzato in costanti di modulo).
 
 ## 7. Modello dati ad alto livello
 
@@ -224,7 +226,7 @@ Il popolamento e la manutenzione del catalogo ufficiale restano a carico del pro
 - Supabase Storage per asset processati (immagini carte, documenti, fotografie archivio).
 - Row Level Security obbligatoria su ogni tabella con dati personali o dati di Reparto.
 - Migrazioni versionate, mai modifiche manuali allo schema in produzione.
-- Nessun progetto Supabase è stato ancora creato per ORMA.
+- Progetto reale attivo: `orma` (org "Scout", `ouffyxrhxhzqcduvgpon`, eu-central-1, piano free) — vedi §12 per i dettagli di deploy. Attenzione: l'integrazione GitHub↔Supabase collegata al repo deploya automaticamente ogni migrazione al progetto reale ad ogni push su `main`, non solo alla validazione della PR (dettaglio in `.claude/CORRECTIONS.md`).
 
 ## 11. Autenticazione e privacy
 
