@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { PaperPage } from "@/components/layout/PaperPage";
 import { createClient } from "@/lib/supabase/server";
 import { decidiRichiesta } from "./actions";
@@ -14,18 +13,9 @@ type RichiestaRow = {
 
 export default async function RichiesteRepartoPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/");
 
-  const { data: ownProfile } = await supabase
-    .from("profiles")
-    .select("is_admin, ruolo")
-    .eq("id", user.id)
-    .single();
-  if (!ownProfile?.is_admin && ownProfile?.ruolo !== "capo") redirect("/");
-
+  // Il permesso (admin globale o Capo di Reparto, DEC-017) è già verificato
+  // da app/admin/layout.tsx.
   const { data: richieste } = (await supabase
     .from("richiesta_reparto")
     .select(

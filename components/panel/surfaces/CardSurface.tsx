@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   addMaestroEsterno,
   addNota,
@@ -90,6 +91,7 @@ function ProgressoSection({
   const canComplete =
     (kind === "specialita" || kind === "competenza") &&
     card.stato === "in_corso";
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-2 font-sans text-sm leading-relaxed">
@@ -102,7 +104,15 @@ function ProgressoSection({
       </p>
 
       {canComplete ? (
-        <form action={markCompleted.bind(null, kind, card.id)}>
+        <form
+          action={async () => {
+            try {
+              await markCompleted(kind, card.id);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Errore imprevisto.");
+            }
+          }}
+        >
           <button
             type="submit"
             className="cursor-pointer text-[11px] tracking-wide underline underline-offset-2"
@@ -112,6 +122,8 @@ function ProgressoSection({
           </button>
         </form>
       ) : null}
+
+      {error ? <p style={{ color: "#b3382c" }}>{error}</p> : null}
     </div>
   );
 }
@@ -125,6 +137,8 @@ const fieldStyle = {
 const linkButtonStyle = { color: "var(--accent)" } as const;
 
 function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
+  const [error, setError] = useState<string | null>(null);
+
   return (
     <div className="flex flex-col gap-3 font-sans text-sm leading-relaxed">
       {card.note.length === 0 ? (
@@ -141,7 +155,15 @@ function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
               }}
             >
               <form
-                action={updateNota.bind(null, nota.id)}
+                action={async (formData) => {
+                  try {
+                    await updateNota(nota.id, formData);
+                  } catch (e) {
+                    setError(
+                      e instanceof Error ? e.message : "Errore imprevisto.",
+                    );
+                  }
+                }}
                 className="flex flex-col gap-2"
               >
                 <textarea
@@ -162,7 +184,17 @@ function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
                   </button>
                 </div>
               </form>
-              <form action={deleteNota.bind(null, nota.id)}>
+              <form
+                action={async () => {
+                  try {
+                    await deleteNota(nota.id);
+                  } catch (e) {
+                    setError(
+                      e instanceof Error ? e.message : "Errore imprevisto.",
+                    );
+                  }
+                }}
+              >
                 <button
                   type="submit"
                   className="cursor-pointer text-[11px] tracking-wide underline underline-offset-2"
@@ -176,7 +208,16 @@ function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
         </ul>
       )}
 
-      <form action={addNota} className="flex flex-col gap-2">
+      <form
+        action={async (formData) => {
+          try {
+            await addNota(formData);
+          } catch (e) {
+            setError(e instanceof Error ? e.message : "Errore imprevisto.");
+          }
+        }}
+        className="flex flex-col gap-2"
+      >
         <input type="hidden" name="tipo" value={kind} />
         <input type="hidden" name="riferimentoId" value={card.id} />
         <textarea
@@ -195,6 +236,8 @@ function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
           Salva nota
         </button>
       </form>
+
+      {error ? <p style={{ color: "#b3382c" }}>{error}</p> : null}
     </div>
   );
 }
@@ -206,6 +249,8 @@ function MaestroSection({
   kind: "specialita" | "competenza";
   card: CardData;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
   if (card.maestroNome) {
     return (
       <p className="font-sans text-sm leading-relaxed">{card.maestroNome}</p>
@@ -217,7 +262,13 @@ function MaestroSection({
       <p>Nessun Maestro associato.</p>
 
       <form
-        action={assignMaestroInterno.bind(null, kind, card.id)}
+        action={async (formData) => {
+          try {
+            await assignMaestroInterno(kind, card.id, formData);
+          } catch (e) {
+            setError(e instanceof Error ? e.message : "Errore imprevisto.");
+          }
+        }}
         className="flex flex-col gap-2"
       >
         <label className="text-[11px] tracking-wide uppercase opacity-70">
@@ -241,7 +292,13 @@ function MaestroSection({
       </form>
 
       <form
-        action={addMaestroEsterno.bind(null, kind, card.id)}
+        action={async (formData) => {
+          try {
+            await addMaestroEsterno(kind, card.id, formData);
+          } catch (e) {
+            setError(e instanceof Error ? e.message : "Errore imprevisto.");
+          }
+        }}
         className="flex flex-col gap-2"
       >
         <label className="text-[11px] tracking-wide uppercase opacity-70">
@@ -270,6 +327,8 @@ function MaestroSection({
           Aggiungi Maestro esterno
         </button>
       </form>
+
+      {error ? <p style={{ color: "#b3382c" }}>{error}</p> : null}
     </div>
   );
 }

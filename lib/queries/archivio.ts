@@ -224,25 +224,24 @@ export async function getArchivio(): Promise<ArchivioData> {
   const documentiDb = (documentiRes.data ?? []) as unknown as DocumentoDbRow[];
 
   // Bucket privato: ogni file si apre con un URL firmato a breve scadenza.
-  const urls = await Promise.all(
-    documentiDb.map((documento) =>
-      supabase.storage
-        .from("archivio")
-        .createSignedUrl(documento.file_path, 3600),
-    ),
-  );
+  const { data: signed } = await supabase.storage
+    .from("archivio")
+    .createSignedUrls(
+      documentiDb.map((d) => d.file_path),
+      3600,
+    );
 
   const documentiPerEntita = new Map<string, DocumentoArchivio[]>();
   documentiDb.forEach((documento, index) => {
-    const url = urls[index]?.data?.signedUrl;
-    if (!url) return;
+    const signedUrl = signed?.[index]?.signedUrl;
+    if (!signedUrl) return;
     const key = `${documento.entita_tipo}:${documento.entita_id}`;
     const list = documentiPerEntita.get(key) ?? [];
     list.push({
       id: documento.id,
       tipo: documento.tipo,
       nomeFile: documento.nome_file,
-      url,
+      url: signedUrl,
     });
     documentiPerEntita.set(key, list);
   });

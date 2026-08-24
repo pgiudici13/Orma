@@ -108,6 +108,7 @@ function Scaffale({
   const [modulo, setModulo] = useState<"uscita" | "campo" | "luogo" | null>(
     null,
   );
+  const [luoghiError, setLuoghiError] = useState<string | null>(null);
 
   return (
     <div className="mt-5 flex flex-col gap-6">
@@ -198,8 +199,14 @@ function Scaffale({
                 {data.isCapoOrAdmin ? (
                   <form
                     action={async () => {
-                      await eliminaLuogo(luogo.id);
-                      onMutated();
+                      try {
+                        await eliminaLuogo(luogo.id);
+                        onMutated();
+                      } catch (e) {
+                        setLuoghiError(
+                          e instanceof Error ? e.message : "Errore imprevisto.",
+                        );
+                      }
                     }}
                   >
                     <button
@@ -215,6 +222,11 @@ function Scaffale({
             ))}
           </ul>
         )}
+        {luoghiError ? (
+          <p className="mt-2 font-sans text-sm" style={{ color: "#b3382c" }}>
+            {luoghiError}
+          </p>
+        ) : null}
         <BottoneAggiungi
           visibile={data.isCapoOrAdmin && modulo === null}
           etichetta="Aggiungi un luogo"
@@ -223,9 +235,15 @@ function Scaffale({
         {modulo === "luogo" ? (
           <form
             action={async (formData) => {
-              await creaLuogo(formData);
-              onMutated();
-              setModulo(null);
+              try {
+                await creaLuogo(formData);
+                onMutated();
+                setModulo(null);
+              } catch (e) {
+                setLuoghiError(
+                  e instanceof Error ? e.message : "Errore imprevisto.",
+                );
+              }
             }}
             className="mt-3 flex flex-col gap-2"
           >
@@ -345,6 +363,7 @@ function Dettaglio({
   onMutated: () => void;
 }) {
   const [modifica, setModifica] = useState(false);
+  const [eliminaError, setEliminaError] = useState<string | null>(null);
   const attivita =
     entitaTipo === "luogo" ? null : (dettaglio as AttivitaArchivio);
   const documenti =
@@ -355,11 +374,15 @@ function Dettaglio({
     [];
 
   const elimina = async () => {
-    if (entitaTipo === "uscita") await eliminaUscita(dettaglio.id);
-    else if (entitaTipo === "campo") await eliminaCampo(dettaglio.id);
-    else await eliminaLuogo(dettaglio.id);
-    onMutated();
-    onBack();
+    try {
+      if (entitaTipo === "uscita") await eliminaUscita(dettaglio.id);
+      else if (entitaTipo === "campo") await eliminaCampo(dettaglio.id);
+      else await eliminaLuogo(dettaglio.id);
+      onMutated();
+      onBack();
+    } catch (e) {
+      setEliminaError(e instanceof Error ? e.message : "Errore imprevisto.");
+    }
   };
 
   return (
@@ -406,6 +429,11 @@ function Dettaglio({
               </button>
             </form>
           </div>
+        ) : null}
+        {eliminaError ? (
+          <p className="mt-2 font-sans text-sm" style={{ color: "#b3382c" }}>
+            {eliminaError}
+          </p>
         ) : null}
       </PanelSection>
 
@@ -605,6 +633,8 @@ function SezioneDocumenti({
   isCapoOrAdmin: boolean;
   onMutated: () => void;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
   return (
     <PanelSection title={titolo}>
       {documenti.length === 0 ? (
@@ -628,8 +658,14 @@ function SezioneDocumenti({
               {isCapoOrAdmin ? (
                 <form
                   action={async () => {
-                    await eliminaDocumento(documento.id);
-                    onMutated();
+                    try {
+                      await eliminaDocumento(documento.id);
+                      onMutated();
+                    } catch (e) {
+                      setError(
+                        e instanceof Error ? e.message : "Errore imprevisto.",
+                      );
+                    }
                   }}
                 >
                   <button
@@ -645,6 +681,11 @@ function SezioneDocumenti({
           ))}
         </ul>
       )}
+      {error ? (
+        <p className="mt-2 font-sans text-sm" style={{ color: "#b3382c" }}>
+          {error}
+        </p>
+      ) : null}
     </PanelSection>
   );
 }
@@ -658,12 +699,18 @@ function FormDocumento({
   entitaId: string;
   onMutated: () => void;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
   return (
     <PanelSection title="Aggiungi fotografia o documento">
       <form
         action={async (formData) => {
-          await caricaDocumento(formData);
-          onMutated();
+          try {
+            await caricaDocumento(formData);
+            onMutated();
+          } catch (e) {
+            setError(e instanceof Error ? e.message : "Errore imprevisto.");
+          }
         }}
         className="flex flex-col gap-2"
       >
@@ -691,6 +738,11 @@ function FormDocumento({
         >
           Carica
         </button>
+        {error ? (
+          <p className="font-sans text-sm" style={{ color: "#b3382c" }}>
+            {error}
+          </p>
+        ) : null}
       </form>
     </PanelSection>
   );
@@ -713,15 +765,21 @@ function FormAttivita({
   onSalvato: () => void;
   onChiuso: () => void;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
   const azione = async (formData: FormData) => {
-    if (initial) {
-      if (entitaTipo === "uscita") await modificaUscita(initial.id, formData);
-      else await modificaCampo(initial.id, formData);
-    } else {
-      if (entitaTipo === "uscita") await creaUscita(formData);
-      else await creaCampo(formData);
+    try {
+      if (initial) {
+        if (entitaTipo === "uscita") await modificaUscita(initial.id, formData);
+        else await modificaCampo(initial.id, formData);
+      } else {
+        if (entitaTipo === "uscita") await creaUscita(formData);
+        else await creaCampo(formData);
+      }
+      onSalvato();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Errore imprevisto.");
     }
-    onSalvato();
   };
 
   return (
@@ -906,6 +964,11 @@ function FormAttivita({
             Annulla
           </button>
         </div>
+        {error ? (
+          <p className="font-sans text-sm" style={{ color: "#b3382c" }}>
+            {error}
+          </p>
+        ) : null}
       </form>
     </PanelSection>
   );

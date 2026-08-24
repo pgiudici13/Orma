@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { decidiRichiesta } from "@/app/admin/richieste-reparto/actions";
 import { loadRepartoSurface } from "@/app/actions/surfaces";
 import { MembriSection } from "@/components/reparto/MembriSection";
@@ -76,8 +77,15 @@ function RichiesteSection({
   richieste: RichiestaData[];
   onDecided: () => void;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
   return (
     <PanelSection title="Richieste di adesione">
+      {error ? (
+        <p className="mb-2 font-sans text-sm" style={{ color: "#b3382c" }}>
+          {error}
+        </p>
+      ) : null}
       <ul className="flex flex-col gap-2">
         {richieste.map((richiesta) => (
           <li
@@ -103,8 +111,14 @@ function RichiesteSection({
             <div className="flex shrink-0 gap-3">
               <form
                 action={async () => {
-                  await decidiRichiesta(richiesta.id, "approvata");
-                  onDecided();
+                  try {
+                    await decidiRichiesta(richiesta.id, "approvata");
+                    onDecided();
+                  } catch (e) {
+                    setError(
+                      e instanceof Error ? e.message : "Errore imprevisto.",
+                    );
+                  }
                 }}
               >
                 <button
@@ -117,8 +131,14 @@ function RichiesteSection({
               </form>
               <form
                 action={async () => {
-                  await decidiRichiesta(richiesta.id, "rifiutata");
-                  onDecided();
+                  try {
+                    await decidiRichiesta(richiesta.id, "rifiutata");
+                    onDecided();
+                  } catch (e) {
+                    setError(
+                      e instanceof Error ? e.message : "Errore imprevisto.",
+                    );
+                  }
                 }}
               >
                 <button

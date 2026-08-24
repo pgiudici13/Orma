@@ -13,6 +13,23 @@ import { beforeAll, describe, expect, it } from "vitest";
  * dell'isolamento cross-Reparto di Fase 6, vedi `.claude/CORRECTIONS.md`):
  * va verificata via SQL diretto/introspezione, come le policy stesse.
  *
+ * Stesso limite per il fix cross-Reparto di
+ * 20260824090000_archivio_partecipanti_reparto_fix.sql (un Capo del Reparto A
+ * non deve poter inserire un profilo/una Squadriglia del Reparto B nelle
+ * tabelle di join): non simulabile qui perché richiede un attore Capo reale,
+ * che il client anon non può diventare in un test (stesso motivo del limite
+ * sopra). Verifica manuale via SQL diretto prima di applicare la migration:
+ *
+ *   -- con due Reparti A/B, un Capo di A, un'uscita di A e un profilo di B:
+ *   set role authenticated;
+ *   select set_config('request.jwt.claims',
+ *     json_build_object('sub', '<capo_di_a_id>')::text, true);
+ *   insert into public.uscita_partecipante (uscita_id, profile_id)
+ *   values ('<uscita_di_a_id>', '<profilo_di_b_id>');
+ *   -- atteso: errore RLS (row violates row-level security policy), non un
+ *   -- insert riuscito. Ripetere per campo_partecipante, uscita_squadriglia
+ *   -- (con squadriglia_id di B) e campo_squadriglia.
+ *
  * Env richieste: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
  * RLS_TEST_USER_A_EMAIL/PASSWORD (e B per il confronto cross-utente). Senza,
  * la suite si salta da sola.

@@ -106,8 +106,22 @@ export async function getRepartoSurface(): Promise<RepartoSurfaceData> {
 
   const repartoId = ownProfile.reparto_id;
 
+  // Recuperata per prima: gli id dei membri servono a restringere le query
+  // su user_specialita/user_competenza (sotto) al solo Reparto corrente,
+  // invece di affidarsi soltanto alla RLS per scartarle lato client.
+  const { data: profilesData } = await supabase
+    .from("profiles")
+    .select(
+      "id, nome, ruolo, squadriglia_id, squadriglia:squadriglia_id(id, nome)",
+    )
+    .eq("reparto_id", repartoId)
+    .neq("stato_consenso_genitoriale", "in_attesa")
+    .order("nome");
+
+  const profilesDb = (profilesData ?? []) as unknown as ProfileDbRow[];
+  const memberIds = profilesDb.map((profile) => profile.id);
+
   const [
-    profilesRes,
     squadriglieRes,
     eventiRes,
     specialitaRes,
@@ -115,14 +129,6 @@ export async function getRepartoSurface(): Promise<RepartoSurfaceData> {
     tappeRes,
     richiesteRes,
   ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(
-        "id, nome, ruolo, squadriglia_id, squadriglia:squadriglia_id(id, nome)",
-      )
-      .eq("reparto_id", repartoId)
-      .neq("stato_consenso_genitoriale", "in_attesa")
-      .order("nome"),
     supabase
       .from("squadriglia")
       .select("id, nome, created_at")
@@ -133,14 +139,20 @@ export async function getRepartoSurface(): Promise<RepartoSurfaceData> {
       .select("id, titolo, descrizione, tipo, data_inizio, data_fine, luogo")
       .eq("reparto_id", repartoId)
       .order("data_inizio", { ascending: true }),
-    supabase
-      .from("user_specialita")
-      .select("profile_id, specialita:specialita_id(id, nome, slug)")
-      .eq("stato", "completata"),
-    supabase
-      .from("user_competenza")
-      .select("profile_id, competenza:competenza_id(id, nome, slug)")
-      .eq("stato", "completata"),
+    memberIds.length === 0
+      ? Promise.resolve({ data: [] })
+      : supabase
+          .from("user_specialita")
+          .select("profile_id, specialita:specialita_id(id, nome, slug)")
+          .eq("stato", "completata")
+          .in("profile_id", memberIds),
+    memberIds.length === 0
+      ? Promise.resolve({ data: [] })
+      : supabase
+          .from("user_competenza")
+          .select("profile_id, competenza:competenza_id(id, nome, slug)")
+          .eq("stato", "completata")
+          .in("profile_id", memberIds),
     supabase
       .from("user_tappa")
       .select("profile_id, tappa:tappa_id(id, nome, ordine)")
@@ -155,8 +167,6 @@ export async function getRepartoSurface(): Promise<RepartoSurfaceData> {
           .order("created_at")
       : Promise.resolve({ data: [] }),
   ]);
-
-  const profilesDb = (profilesRes.data ?? []) as unknown as ProfileDbRow[];
 
   const byProfile = <T>(
     rows: { profile_id: string }[],

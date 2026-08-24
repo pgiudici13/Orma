@@ -26,7 +26,7 @@ export async function markCompleted(kind: CompletableKind, contentId: string) {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase
+  const { error } = await supabase
     .from(TABLE_BY_KIND[kind])
     .update({
       stato: "completata",
@@ -34,6 +34,10 @@ export async function markCompleted(kind: CompletableKind, contentId: string) {
     })
     .eq("profile_id", user.id)
     .eq(FK_BY_KIND[kind], contentId);
+
+  if (error) {
+    throw new Error(`Impossibile completare: ${error.message}`);
+  }
 
   revalidatePath("/");
 }

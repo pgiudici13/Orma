@@ -819,3 +819,44 @@ La Fase 9 (P9-T01/T02/T03, FR-19) implementa l'archivio storico di Reparto: usci
 - `supabase/migrations/20260823120000_archivio_reparto.sql` (tabelle + RLS + bucket e policy Storage) da applicare al progetto reale.
 - Test RLS in `tests/unit/rls/archivio.rls.test.ts` (percorso di diniego per utenti `eg`, incluse le policy Storage — stesso limite già dichiarato per l'isolamento cross-Reparto dei Capi, vedi `.claude/CORRECTIONS.md`); l'integrità referenziale (P9-T01) è garantita dai vincoli FK dello schema e va verificata via introspezione SQL, non automatizzabile via client con utenti non-Capo.
 - Unit della superficie in `tests/unit/archivioSurface.test.tsx` (scaffale, dettaglio, permessi).
+
+---
+
+## DEC-024 — Archivio: eccezione a DEC-015 per dati sensibili (fotografie con minori)
+
+### Status
+
+Proposed
+
+### Context
+
+[DEC-015](#dec-015--visibilità-admin-read-only-cross-utente) stabilisce che l'admin globale (`is_admin()`) ha visibilità read-only cross-Reparto sui dati degli utenti per funzionalità di ricerca e profilo. La policy `evento_select_own_reparto` in `20260823100000_reparto_funzionalita.sql` (Fase 7, tabelle di Reparto) include `or public.is_admin()` nel SELECT, coerentemente con DEC-015.
+
+Tuttavia le policy SELECT su `luogo`, `uscita`, `campo` e `documento_archivio` in `20260823120000_archivio_reparto.sql` (Fase 9, archivio storico) **non** includono `or public.is_admin()`, restringendo l'accesso soltanto ai membri del Reparto di cui l'admin non fa parte. Questo contraddice il principio generale di DEC-015.
+
+### Decision
+
+Documentare esplicitamente questa eccezione: le policy di archivio storico (`luogo_select_reparto`, `uscita_select_reparto`, `campo_select_reparto`, `documento_archivio_select_reparto`) intenzionalmente non espongono i dati all'admin globale.
+
+La restrizione è giustificata se **deliberata**: l'archivio contiene fotografie e documenti di minori (Fase 9, ricordi storici del Reparto), dato sensibile rispetto alla consultazione di profili, calendario e progressi scout. Evita accesso accidentale in-app a fotografie di minori durante ricerche amministrative, rispettando pienamente SDD §17 ("nessun bucket pubblico per contenuti che includano minori") e il principio di privacy-by-default.
+
+Se invece è una **svista** e dev'essere allineata a DEC-015, il maintainer del progetto deve aggiornare le quattro policy con `or public.is_admin()` e riaprire questa decisione.
+
+### Why
+
+- L'archivio storico contiene fotografie e documenti di minori: dato più sensibile rispetto a profili, calendario e progressi scout che l'admin consulta normalmente.
+- Privacy by default (DEC-010, CLAUDE.md §4): l'accesso a fotografie/documenti di minori non dovrebbe essere automatico neppure per un admin globale.
+- Protezione dall'accesso accidentale durante una ricerca amministrativa in-app.
+- L'admin ha accesso totale via dashboard Supabase (service-role key) comunque — questa eccezione non è una "sicurezza vera", bensì una protezione dall'accesso accidentale tramite UI.
+
+### Alternatives
+
+- **Allineare a DEC-015**: aggiungere `or public.is_admin()` alle quattro policy di archivio, rendendo coerente il modello di visibilità admin su tutte le tabelle di Reparto.
+- **Allineare altre tabelle a questa eccezione**: rimuovere `or public.is_admin()` anche da `evento_select_own_reparto` e dalle policy di profilo/specialità/competenza/tappa — scartato: la consultazione di eventi e progressi scout è caso d'uso legittimo per un admin, diverso dall'accesso a fotografie personali di minori.
+
+### Consequences
+
+- Finché questa decisione resta **Proposed**, il maintainer può verificare se è intenzionale o una svista.
+- Se intenzionale: nessun change necessario, il codice attuale è corretto.
+- Se sbagliata: le quattro policy vanno aggiornate in una nuova migrazione; questa voce marcata `Accepted`; DEC-015 confermato come principio generale senza eccezioni.
+- Un contributor futuro che noti questa incoerenza comprenderà che è una scelta consapevole, non un'accortezza di copiatura del template.

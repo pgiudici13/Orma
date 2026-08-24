@@ -284,6 +284,8 @@ function RisultatoMaestro({
   mieSpecialitaAttive: string[];
   onAssociato: () => void;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
   // Il Maestro si associa a una propria Specialità in corso: i pulsanti
   // compaiono solo per quelle che combaciano con le dichiarate dal Maestro.
   const associazioni = maestro.specialitaIds
@@ -338,11 +340,17 @@ function RisultatoMaestro({
             <form
               key={associazione.id}
               action={async () => {
-                await associaMaestroDaRicerca(
-                  associazione.id,
-                  maestro.profileId,
-                );
-                onAssociato();
+                try {
+                  await associaMaestroDaRicerca(
+                    associazione.id,
+                    maestro.profileId,
+                  );
+                  onAssociato();
+                } catch (e) {
+                  setError(
+                    e instanceof Error ? e.message : "Errore imprevisto.",
+                  );
+                }
               }}
             >
               <button
@@ -355,6 +363,11 @@ function RisultatoMaestro({
             </form>
           ))}
         </div>
+      ) : null}
+      {error ? (
+        <p className="font-sans text-[11px]" style={{ color: "#b3382c" }}>
+          {error}
+        </p>
       ) : null}
     </li>
   );

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCachedUser } from "@/lib/supabase/server";
 import type {
   CardData,
   ContentKind,
@@ -6,6 +6,7 @@ import type {
   NotaData,
 } from "@/lib/scene/objects";
 import { distintivoPublicUrl } from "@/lib/supabase/storage";
+import type { User } from "@supabase/supabase-js";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -51,12 +52,22 @@ function maestroNome(row: {
  * applica già l'isolamento per profilo (P3-T03): questa query non filtra
  * nulla che il database non filtrerebbe comunque, si limita a comporre i
  * dati per la UI.
+ *
+ * `supabase`/`user` sono opzionali: se non passati (es. chiamata diretta da
+ * `app/reparto/page.tsx`), vengono ottenuti dalle funzioni cache-ate di
+ * `lib/supabase/server.ts`, che deduplicano comunque le chiamate ripetute
+ * nello stesso render tree (es. da `getTableContext`).
  */
-export async function getTableCards(): Promise<CardData[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function getTableCards(
+  supabase?: SupabaseServerClient,
+  user?: User | null,
+): Promise<CardData[]> {
+  supabase ??= await createClient();
+  if (user === undefined) {
+    ({
+      data: { user },
+    } = await getCachedUser());
+  }
   if (!user) return [];
 
   const [specialitaRes, competenzaRes, tappaRes] = await Promise.all([
@@ -204,7 +215,7 @@ export async function getTableContext(): Promise<{
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getCachedUser();
   if (!user) return { cards: [], events: [], hasReparto: false };
 
   const { data: profile } = (await supabase
@@ -215,7 +226,7 @@ export async function getTableContext(): Promise<{
 
   const repartoId = profile?.reparto_id ?? null;
   const [cards, events] = await Promise.all([
-    getTableCards(),
+    getTableCards(supabase, user),
     repartoId ? getRepartoEvents(supabase, repartoId) : Promise.resolve([]),
   ]);
 

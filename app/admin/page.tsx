@@ -15,6 +15,18 @@ type ProfileRow = {
 type ProgressRow = { profile_id: string; stato: string };
 type TappaRow = { profile_id: string };
 
+function groupByProfile<T extends { profile_id: string }>(
+  rows: T[],
+): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const row of rows) {
+    const list = map.get(row.profile_id) ?? [];
+    list.push(row);
+    map.set(row.profile_id, list);
+  }
+  return map;
+}
+
 function countByStato(rows: ProgressRow[], profileId: string) {
   const mine = rows.filter((r) => r.profile_id === profileId);
   return {
@@ -30,6 +42,10 @@ export default async function AdminPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
+  // app/admin/layout.tsx garantisce già admin globale o Capo di Reparto;
+  // questa pagina (sola lettura cross-utente, DEC-015) resta riservata
+  // all'admin globale, quindi il controllo qui è più stretto e non è
+  // ridondante con quello del layout.
   const { data: ownProfile } = await supabase
     .from("profiles")
     .select("is_admin")
@@ -65,6 +81,10 @@ export default async function AdminPage() {
   const specialitaRows = specialita ?? [];
   const competenzaRows = competenza ?? [];
   const tappaRows = tappa ?? [];
+
+  const specialitaByProfile = groupByProfile(specialitaRows);
+  const competenzaByProfile = groupByProfile(competenzaRows);
+  const tappaByProfile = groupByProfile(tappaRows);
 
   return (
     <PaperPage larghezza="max-w-4xl">
@@ -108,11 +128,15 @@ export default async function AdminPage() {
           </thead>
           <tbody>
             {(profiles ?? []).map((profile) => {
-              const spec = countByStato(specialitaRows, profile.id);
-              const comp = countByStato(competenzaRows, profile.id);
-              const tappeCount = tappaRows.filter(
-                (r) => r.profile_id === profile.id,
-              ).length;
+              const spec = countByStato(
+                specialitaByProfile.get(profile.id) ?? [],
+                profile.id,
+              );
+              const comp = countByStato(
+                competenzaByProfile.get(profile.id) ?? [],
+                profile.id,
+              );
+              const tappeCount = (tappaByProfile.get(profile.id) ?? []).length;
 
               return (
                 <tr

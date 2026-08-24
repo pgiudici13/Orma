@@ -24,6 +24,8 @@ export function SquadriglieSection({
   const [editingSqId, setEditingSqId] = useState<string | null>(null);
   const [editingSqName, setEditingSqName] = useState("");
   const [showNewSqForm, setShowNewSqForm] = useState(false);
+  const [newSqError, setNewSqError] = useState<string | null>(null);
+  const [sqActionError, setSqActionError] = useState<string | null>(null);
 
   const unassignedMembers = members.filter((m) => !m.squadrigliaId);
 
@@ -42,7 +44,8 @@ export function SquadriglieSection({
             className="font-sans text-xs mt-1"
             style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
           >
-            {squadriglie.length} squadriglie attive • {members.length} membri totali
+            {squadriglie.length} squadriglie attive • {members.length} membri
+            totali
           </p>
         </div>
 
@@ -65,9 +68,15 @@ export function SquadriglieSection({
       {isCapoOrAdmin && showNewSqForm ? (
         <form
           action={async (formData) => {
-            await creaSquadriglia(formData);
-            setShowNewSqForm(false);
-            onMutated?.();
+            try {
+              await creaSquadriglia(formData);
+              setShowNewSqForm(false);
+              onMutated?.();
+            } catch (e) {
+              setNewSqError(
+                e instanceof Error ? e.message : "Errore imprevisto.",
+              );
+            }
           }}
           className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-[3px]"
           style={{
@@ -79,7 +88,9 @@ export function SquadriglieSection({
             <label
               htmlFor="nome-nuova-sq"
               className="block text-[10px] uppercase tracking-wider font-sans mb-1"
-              style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+              style={{
+                color: "color-mix(in srgb, var(--ink) 70%, transparent)",
+              }}
             >
               Nome Squadriglia (es. Aquile, Volpi, Gabbiani)
             </label>
@@ -122,7 +133,18 @@ export function SquadriglieSection({
               Annulla
             </button>
           </div>
+          {newSqError ? (
+            <p className="font-sans text-xs" style={{ color: "#b3382c" }}>
+              {newSqError}
+            </p>
+          ) : null}
         </form>
+      ) : null}
+
+      {sqActionError ? (
+        <p className="font-sans text-xs" style={{ color: "#b3382c" }}>
+          {sqActionError}
+        </p>
       ) : null}
 
       {/* Griglia Squadriglie */}
@@ -142,13 +164,25 @@ export function SquadriglieSection({
               }}
             >
               {/* Header Squadriglia */}
-              <div className="flex items-start justify-between gap-3 border-b pb-3" style={{ borderColor: "color-mix(in srgb, var(--ink) 12%, transparent)" }}>
+              <div
+                className="flex items-start justify-between gap-3 border-b pb-3"
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--ink) 12%, transparent)",
+                }}
+              >
                 {isEditing ? (
                   <form
                     action={async (formData) => {
-                      await rinominaSquadriglia(sq.id, formData);
-                      setEditingSqId(null);
-                      onMutated?.();
+                      try {
+                        await rinominaSquadriglia(sq.id, formData);
+                        setEditingSqId(null);
+                        onMutated?.();
+                      } catch (e) {
+                        setSqActionError(
+                          e instanceof Error ? e.message : "Errore imprevisto.",
+                        );
+                      }
                     }}
                     className="flex items-center gap-2 flex-1"
                   >
@@ -189,10 +223,12 @@ export function SquadriglieSection({
                     <p
                       className="text-xs font-sans mt-0.5"
                       style={{
-                        color: "color-mix(in srgb, var(--ink) 60%, transparent)",
+                        color:
+                          "color-mix(in srgb, var(--ink) 60%, transparent)",
                       }}
                     >
-                      {sqMembers.length} {sqMembers.length === 1 ? "membro" : "membri"}
+                      {sqMembers.length}{" "}
+                      {sqMembers.length === 1 ? "membro" : "membri"}
                     </p>
                   </div>
                 )}
@@ -212,9 +248,21 @@ export function SquadriglieSection({
                     </button>
                     <form
                       action={async () => {
-                        if (confirm(`Sei sicuro di voler eliminare la Squadriglia ${sq.nome}? I membri verranno disassegnati.`)) {
-                          await eliminaSquadriglia(sq.id);
-                          onMutated?.();
+                        if (
+                          confirm(
+                            `Sei sicuro di voler eliminare la Squadriglia ${sq.nome}? I membri verranno disassegnati.`,
+                          )
+                        ) {
+                          try {
+                            await eliminaSquadriglia(sq.id);
+                            onMutated?.();
+                          } catch (e) {
+                            setSqActionError(
+                              e instanceof Error
+                                ? e.message
+                                : "Errore imprevisto.",
+                            );
+                          }
                         }
                       }}
                     >
@@ -260,7 +308,8 @@ export function SquadriglieSection({
                         <p
                           className="text-[11px] font-sans mt-0.5"
                           style={{
-                            color: "color-mix(in srgb, var(--ink) 65%, transparent)",
+                            color:
+                              "color-mix(in srgb, var(--ink) 65%, transparent)",
                           }}
                         >
                           {m.specialitaCompletate.length} Specialità
@@ -271,8 +320,16 @@ export function SquadriglieSection({
                       {isCapoOrAdmin ? (
                         <form
                           action={async (formData) => {
-                            await assegnaMembroSquadriglia(m.id, formData);
-                            onMutated?.();
+                            try {
+                              await assegnaMembroSquadriglia(m.id, formData);
+                              onMutated?.();
+                            } catch (e) {
+                              setSqActionError(
+                                e instanceof Error
+                                  ? e.message
+                                  : "Errore imprevisto.",
+                              );
+                            }
                           }}
                           className="shrink-0"
                         >
@@ -319,7 +376,12 @@ export function SquadriglieSection({
                 "1px dashed color-mix(in srgb, var(--wood-dark) 35%, transparent)",
             }}
           >
-            <div className="border-b pb-3" style={{ borderColor: "color-mix(in srgb, var(--ink) 12%, transparent)" }}>
+            <div
+              className="border-b pb-3"
+              style={{
+                borderColor: "color-mix(in srgb, var(--ink) 12%, transparent)",
+              }}
+            >
               <h3
                 className="font-serif text-xl font-bold leading-snug"
                 style={{ color: "var(--ink)" }}
@@ -332,7 +394,9 @@ export function SquadriglieSection({
                   color: "color-mix(in srgb, var(--ink) 60%, transparent)",
                 }}
               >
-                {unassignedMembers.length} {unassignedMembers.length === 1 ? "membro" : "membri"} da assegnare
+                {unassignedMembers.length}{" "}
+                {unassignedMembers.length === 1 ? "membro" : "membri"} da
+                assegnare
               </p>
             </div>
 
@@ -356,7 +420,8 @@ export function SquadriglieSection({
                     <p
                       className="text-[11px] font-sans mt-0.5"
                       style={{
-                        color: "color-mix(in srgb, var(--ink) 65%, transparent)",
+                        color:
+                          "color-mix(in srgb, var(--ink) 65%, transparent)",
                       }}
                     >
                       {m.specialitaCompletate.length} Specialità
@@ -367,8 +432,16 @@ export function SquadriglieSection({
                   {isCapoOrAdmin ? (
                     <form
                       action={async (formData) => {
-                        await assegnaMembroSquadriglia(m.id, formData);
-                        onMutated?.();
+                        try {
+                          await assegnaMembroSquadriglia(m.id, formData);
+                          onMutated?.();
+                        } catch (e) {
+                          setSqActionError(
+                            e instanceof Error
+                              ? e.message
+                              : "Errore imprevisto.",
+                          );
+                        }
                       }}
                       className="shrink-0"
                     >

@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import type { EventoData } from "@/lib/scene/objects";
-import { creaEvento, eliminaEvento, modificaEvento } from "@/app/reparto/actions";
+import {
+  creaEvento,
+  eliminaEvento,
+  modificaEvento,
+} from "@/app/reparto/actions";
 
 export function CalendarioSection({
   events,
@@ -16,6 +20,7 @@ export function CalendarioSection({
 }) {
   const [showNewEventForm, setShowNewEventForm] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [newEventError, setNewEventError] = useState<string | null>(null);
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const upcomingEvents = events.filter(
@@ -63,9 +68,15 @@ export function CalendarioSection({
       {isCapoOrAdmin && showNewEventForm ? (
         <form
           action={async (formData) => {
-            await creaEvento(formData);
-            setShowNewEventForm(false);
-            onMutated?.();
+            try {
+              await creaEvento(formData);
+              setShowNewEventForm(false);
+              onMutated?.();
+            } catch (e) {
+              setNewEventError(
+                e instanceof Error ? e.message : "Errore imprevisto.",
+              );
+            }
           }}
           className="flex flex-col gap-4 p-5 rounded-[3px]"
           style={{
@@ -73,7 +84,10 @@ export function CalendarioSection({
             border: "1px solid var(--accent)",
           }}
         >
-          <h3 className="font-serif text-lg font-semibold" style={{ color: "var(--ink)" }}>
+          <h3
+            className="font-serif text-lg font-semibold"
+            style={{ color: "var(--ink)" }}
+          >
             Aggiungi un evento al calendario
           </h3>
 
@@ -82,7 +96,9 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-titolo"
                 className="block uppercase tracking-wider mb-1"
-                style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+                style={{
+                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
+                }}
               >
                 Titolo evento *
               </label>
@@ -106,7 +122,9 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-tipo"
                 className="block uppercase tracking-wider mb-1"
-                style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+                style={{
+                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
+                }}
               >
                 Tipo di attività *
               </label>
@@ -133,7 +151,9 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-data-inizio"
                 className="block uppercase tracking-wider mb-1"
-                style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+                style={{
+                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
+                }}
               >
                 Data inizio *
               </label>
@@ -157,7 +177,9 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-data-fine"
                 className="block uppercase tracking-wider mb-1"
-                style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+                style={{
+                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
+                }}
               >
                 Data fine (se su più giorni)
               </label>
@@ -179,7 +201,9 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-luogo"
                 className="block uppercase tracking-wider mb-1"
-                style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+                style={{
+                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
+                }}
               >
                 Luogo / Base scout
               </label>
@@ -202,7 +226,9 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-descrizione"
                 className="block uppercase tracking-wider mb-1"
-                style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+                style={{
+                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
+                }}
               >
                 Descrizione / Note operative
               </label>
@@ -246,6 +272,11 @@ export function CalendarioSection({
               Annulla
             </button>
           </div>
+          {newEventError ? (
+            <p className="font-sans text-xs" style={{ color: "#b3382c" }}>
+              {newEventError}
+            </p>
+          ) : null}
         </form>
       ) : null}
 
@@ -333,13 +364,19 @@ function EventCard({
   onCancelEdit: () => void;
   onMutated?: () => void;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
   if (isEditing) {
     return (
       <form
         action={async (formData) => {
-          await modificaEvento(event.id, formData);
-          onCancelEdit();
-          onMutated?.();
+          try {
+            await modificaEvento(event.id, formData);
+            onCancelEdit();
+            onMutated?.();
+          } catch (e) {
+            setError(e instanceof Error ? e.message : "Errore imprevisto.");
+          }
         }}
         className="flex flex-col gap-4 p-5 rounded-[3px]"
         style={{
@@ -347,7 +384,10 @@ function EventCard({
           border: "1px solid var(--accent)",
         }}
       >
-        <h4 className="font-serif text-lg font-semibold" style={{ color: "var(--ink)" }}>
+        <h4
+          className="font-serif text-lg font-semibold"
+          style={{ color: "var(--ink)" }}
+        >
           Modifica evento
         </h4>
 
@@ -508,6 +548,11 @@ function EventCard({
             Annulla
           </button>
         </div>
+        {error ? (
+          <p className="font-sans text-xs" style={{ color: "#b3382c" }}>
+            {error}
+          </p>
+        ) : null}
       </form>
     );
   }
@@ -577,9 +622,19 @@ function EventCard({
             </button>
             <form
               action={async () => {
-                if (confirm(`Sei sicuro di voler eliminare l'evento "${event.titolo}"?`)) {
-                  await eliminaEvento(event.id);
-                  onMutated?.();
+                if (
+                  confirm(
+                    `Sei sicuro di voler eliminare l'evento "${event.titolo}"?`,
+                  )
+                ) {
+                  try {
+                    await eliminaEvento(event.id);
+                    onMutated?.();
+                  } catch (e) {
+                    setError(
+                      e instanceof Error ? e.message : "Errore imprevisto.",
+                    );
+                  }
                 }
               }}
             >
@@ -593,6 +648,12 @@ function EventCard({
           </div>
         ) : null}
       </div>
+
+      {error ? (
+        <p className="font-sans text-xs" style={{ color: "#b3382c" }}>
+          {error}
+        </p>
+      ) : null}
 
       {event.descrizione ? (
         <p

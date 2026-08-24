@@ -21,6 +21,11 @@ const ENTITA_TABELLA: Record<EntitaTipo, string> = {
   luogo: "luogo",
 };
 
+const ESTENSIONI_CONSENTITE: Record<"foto" | "documento", string[]> = {
+  foto: ["jpg", "jpeg", "png", "webp", "heic"],
+  documento: ["pdf"],
+};
+
 /** Legge i valori comuni ai moduli di uscita e campo. */
 function leggiAttivita(formData: FormData) {
   const titolo = String(formData.get("titolo") ?? "").trim();
@@ -54,9 +59,17 @@ async function sostituisciRelazioni(
           "campo_id",
         ] as const);
 
-  await supabase.from(partecipantiTable).delete().eq(fkPartecipanti, entitaId);
+  const { error: delPartError } = await supabase
+    .from(partecipantiTable)
+    .delete()
+    .eq(fkPartecipanti, entitaId);
+  if (delPartError)
+    throw new Error(
+      `Errore nell'aggiornamento dei partecipanti: ${delPartError.message}`,
+    );
+
   if (partecipanti.length > 0) {
-    await supabase
+    const { error: insPartError } = await supabase
       .from(partecipantiTable)
       .insert(
         partecipanti.map((profile_id) => ({
@@ -64,17 +77,31 @@ async function sostituisciRelazioni(
           profile_id,
         })),
       );
+    if (insPartError)
+      throw new Error(
+        `Errore nell'aggiornamento dei partecipanti: ${insPartError.message}`,
+      );
   }
 
-  await supabase.from(squadriglieTable).delete().eq(fkSquadriglie, entitaId);
+  const { error: delSqError } = await supabase
+    .from(squadriglieTable)
+    .delete()
+    .eq(fkSquadriglie, entitaId);
+  if (delSqError)
+    throw new Error(
+      `Errore nell'aggiornamento delle squadriglie: ${delSqError.message}`,
+    );
+
   if (squadriglie.length > 0) {
-    await supabase
-      .from(squadriglieTable)
-      .insert(
-        squadriglie.map((squadriglia_id) => ({
-          [fkSquadriglie]: entitaId,
-          squadriglia_id,
-        })),
+    const { error: insSqError } = await supabase.from(squadriglieTable).insert(
+      squadriglie.map((squadriglia_id) => ({
+        [fkSquadriglie]: entitaId,
+        squadriglia_id,
+      })),
+    );
+    if (insSqError)
+      throw new Error(
+        `Errore nell'aggiornamento delle squadriglie: ${insSqError.message}`,
       );
   }
 }
@@ -381,6 +408,11 @@ export async function caricaDocumento(formData: FormData) {
   }
 
   const estensione = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (
+    !ESTENSIONI_CONSENTITE[tipo as "foto" | "documento"].includes(estensione)
+  ) {
+    throw new Error("Tipo di file non consentito.");
+  }
   const filePath = `${profile.reparto_id}/${entitaTipo}/${entitaId}/${crypto.randomUUID()}${estensione ? `.${estensione}` : ""}`;
 
   const { error: uploadError } = await supabase.storage

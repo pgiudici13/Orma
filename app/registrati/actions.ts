@@ -73,19 +73,25 @@ export async function registrati(
   });
 
   if (profileError) {
-    return {
-      error:
-        "Account creato ma il profilo non è stato salvato. Contatta il supporto.",
-    };
+    // Compensazione best-effort: elimina l'utente Auth orfano appena creato
+    // così l'email torna libera per un nuovo tentativo di registrazione.
+    await admin.auth.admin.deleteUser(data.user.id).catch(() => {});
+    return { error: "Registrazione non riuscita. Riprova." };
   }
 
   if (serveConsenso && consensoToken) {
     const confirmUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/consenso/${consensoToken}`;
-    await inviaEmailConsensoGenitoriale({
-      genitoreEmail,
-      nomeMinore: nome,
-      confirmUrl,
-    });
+    try {
+      await inviaEmailConsensoGenitoriale({
+        genitoreEmail,
+        nomeMinore: nome,
+        confirmUrl,
+      });
+    } catch {
+      // Il profilo con stato "in_attesa" e il token sono già salvati: un
+      // errore del servizio email non deve bloccare il redirect alla pagina
+      // di attesa (nessun logging esterno esiste nel progetto).
+    }
     redirect("/attesa-consenso");
   }
 

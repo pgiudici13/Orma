@@ -47,7 +47,9 @@ function getImageTexture(url: string): Texture {
   const cached = imageCache.get(url);
   if (cached) return cached;
 
-  const texture = imageLoader.load(url);
+  const texture = imageLoader.load(url, undefined, undefined, () => {
+    imageCache.delete(url);
+  });
   texture.colorSpace = SRGBColorSpace;
   texture.anisotropy = 4;
 

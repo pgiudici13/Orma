@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { loadCatalogo } from "@/app/actions/surfaces";
 import { startCompetenza } from "@/app/competenze/actions";
 import { startSpecialita } from "@/app/specialita/actions";
@@ -87,6 +87,8 @@ function VoceCatalogo({
   kind: ContentKind;
   onStarted: () => void;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
   return (
     <li
       className="flex flex-col justify-between gap-2 rounded-[3px] p-3"
@@ -134,8 +136,12 @@ function VoceCatalogo({
       ) : (
         <form
           action={async () => {
-            await START_ACTION[kind](voce.id);
-            onStarted();
+            try {
+              await START_ACTION[kind](voce.id);
+              onStarted();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Errore imprevisto.");
+            }
           }}
         >
           <button
@@ -147,6 +153,11 @@ function VoceCatalogo({
           </button>
         </form>
       )}
+      {error ? (
+        <p className="font-sans text-[11px]" style={{ color: "#b3382c" }}>
+          {error}
+        </p>
+      ) : null}
     </li>
   );
 }
