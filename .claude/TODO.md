@@ -85,7 +85,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **File/componenti**: `components/three/TableCanvas.tsx` (Client Component, caricata con `next/dynamic` `ssr: false`), `TableTop.tsx`, `Lighting.tsx`, `materials/`.
 - **Criteri di completamento**: scena 3D renderizza senza errori SSR, 60fps su desktop di riferimento.
 - **Test necessari**: verifica visiva, check console errori, check performance base (frame time).
-- **Stato**: completato. Scena verificata via Playwright (screenshot desktop), console pulita, build di produzione senza errori SSR. Il frame rate reale non è misurabile nell'ambiente headless usato (WebGL software): resta da confermare su GPU reale in P10-T03.
+- **Stato**: completato. Scena verificata via Playwright (screenshot desktop), console pulita, build di produzione senza errori SSR. Il frame rate reale su GPU fisica resta non misurato — verifica su hardware reale rimossa dal piano di build ([DEC-025](DECISIONS.md#dec-025--p10-t03-frame-rate-reali-su-device-mobile-rimosso-dal-piano)), il budget quantitativo automatico (`tests/e2e/budget.ts`) resta la verifica di performance continua.
 
 ### P2-T02 — Decisione state management (chiude DEC-004)
 
@@ -119,7 +119,7 @@ Stato attuale del repository: solo documentazione (`IDEA.md`, `docs/*`, `.claude
 - **Dipendenze**: P2-T04.
 - **Criteri di completamento**: layout mobile distinto validato su almeno un device/simulatore reale.
 - **Test necessari**: verifica responsive, check performance GPU mobile.
-- **Stato**: completato come composizione 2D dedicata ([DEC-013](DECISIONS.md)), non come scena 3D adattata: su mobile la scena WebGL non viene nemmeno caricata. Validato a 390×844 in Chromium (screenshot + E2E); **non ancora provato su un device fisico**, e il check GPU mobile resta a P10-T03.
+- **Stato**: completato come composizione 2D dedicata ([DEC-013](DECISIONS.md)), non come scena 3D adattata: su mobile la scena WebGL non viene nemmeno caricata. Validato a 390×844 in Chromium (screenshot + E2E); il check GPU mobile su device fisico è stato rimosso dal piano ([DEC-025](DECISIONS.md#dec-025--p10-t03-frame-rate-reali-su-device-mobile-rimosso-dal-piano)) — non rilevante comunque per questo task, dato che la scena WebGL non è mai caricata su mobile.
 
 ---
 
@@ -487,7 +487,7 @@ Implementati tutti e tre i task con la migrazione `20260823120000_archivio_repar
 
 ---
 
-## Phase 10 — Security / Accessibility / Performance
+## Phase 10 — Security / Accessibility / Performance — **completata**
 
 ### P10-T01 — Audit RLS completo
 
@@ -517,13 +517,9 @@ Implementati tutti e tre i task con la migrazione `20260823120000_archivio_repar
 
   Non affrontato qui: contrasto della composizione 2D/`TableFlat` oltre allo smoke test automatico (nessuna violazione trovata, ma senza revisione manuale caso per caso) e navigazione da tastiera della scena 3D stessa (fuori scope, è un canvas WebGL — l'accesso via hotspot DOM è già coperto da `tableInteraction.spec.ts`).
 
-### P10-T03 — Performance 3D su mobile
+### P10-T03 — rimosso dal piano ([DEC-025](DECISIONS.md#dec-025--p10-t03-frame-rate-reali-su-device-mobile-rimosso-dal-piano))
 
-- **Obiettivo**: verificare frame rate e uso GPU della scena tavolo su device mobile reali/simulati.
-- **Dipendenze**: P2-T05.
-- **Criteri di completamento**: soglia minima di frame rate definita e rispettata su device di riferimento.
-- **Test necessari**: profiling performance su almeno un device mobile reale.
-- **Stato**: non completato in questa sessione — richiede un device mobile fisico o un simulatore con GPU reale, non disponibili nell'ambiente headless usato (stesso limite già dichiarato ripetutamente da Fase 2 in poi: "i frame rate reali restano da misurare su hardware vero"). Resta l'unico task aperto di questa fase.
+Chiedeva di misurare frame rate/uso GPU su device mobile reale — mai eseguibile in 8 fasi consecutive nell'ambiente di sviluppo headless usato per questo progetto (nessun device fisico o simulatore con GPU reale disponibile). Rimosso dal piano come task permanentemente non eseguibile, non per bassa priorità: le mitigazioni di design (qualità a due livelli, `frameloop="demand"`, geometrie/texture condivise) restano in atto e il budget quantitativo (`tests/e2e/budget.ts`, draw call/triangoli/texture) resta l'unica verifica di performance automatica. Se un device reale diventa disponibile in futuro, va gestito come attività ad-hoc del proprietario del progetto, non riaperto come task di fase.
 
 ---
 

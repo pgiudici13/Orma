@@ -165,13 +165,13 @@ Non ogni superficie deve necessariamente vivere "sul tavolo": Reparto, ricerca M
 | Luci che proiettano ombra (base)  | 1 (1024)          | 1                                   |
 | Post-processing                   | nessuno           | nessuno                             |
 | Frame rate desktop di riferimento | 60 fps            | da confermare su GPU reale          |
-| Frame rate mobile (P10-T03)       | ≥ 30 fps          | non ancora misurato                 |
+| Frame rate mobile                 | ≥ 30 fps          | non misurato — verifica su hardware reale rimossa dal piano di build ([DEC-025](../.claude/DECISIONS.md#dec-025--p10-t03-frame-rate-reali-su-device-mobile-rimosso-dal-piano)) |
 
 Le soglie sono state alzate rispetto alla Fase 2 con [DEC-020](../.claude/DECISIONS.md#dec-020--resa-realistica-pbr-in-tempo-reale-ambiente-procedurale-ombre-morbide--niente-path-tracing): i bordi smussati costano triangoli, le mappe PBR costano memoria, la lampada costa una seconda mappa d'ombra. Il margine tiene conto degli oggetti che il tavolo deve ancora accogliere.
 
 La sonda registra il **picco** e non l'ultimo frame: con `frameloop="demand"` l'ultimo frame disegnato può essere un passaggio ausiliario (la cottura dell'ambiente) i cui contatori non descrivono la scena.
 
-I frame rate non sono misurabili nell'ambiente di sviluppo headless usato finora (WebGL software SwiftShader): restano da verificare su hardware reale in P10-T03.
+I frame rate non sono misurabili nell'ambiente di sviluppo headless usato per questo progetto (WebGL software SwiftShader): la verifica su hardware reale è stata rimossa dal piano di build ([DEC-025](../.claude/DECISIONS.md#dec-025--p10-t03-frame-rate-reali-su-device-mobile-rimosso-dal-piano)) dopo essere restata aperta e non eseguibile per 8 fasi consecutive; resta un'attività manuale ad-hoc se e quando un device reale sarà disponibile.
 
 ## 11. Asset Pipeline
 
@@ -343,7 +343,7 @@ Nessuna soluzione di monitoring/error tracking è ancora scelta. Per il go-live 
 | Rischio                                                                                    | Impatto                                             | Mitigazione                                                                                                |
 | ------------------------------------------------------------------------------------------ | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Materiale AGESCI non liberamente riutilizzabile                                            | Blocco legale/rimozione contenuti                   | Verificare licenza/permessi prima di ogni integrazione asset (vedi §11)                                    |
-| Complessità 3D che degrada performance mobile                                              | Esperienza inutilizzabile su device di fascia bassa | Budget di performance esplicito da Fase 1, test su device reali (P10-T03)                                  |
+| Complessità 3D che degrada performance mobile                                              | Esperienza inutilizzabile su device di fascia bassa | Budget di performance esplicito da Fase 1 (`tests/e2e/budget.ts`), test su device reali fuori dal piano di build ([DEC-025](../.claude/DECISIONS.md#dec-025--p10-t03-frame-rate-reali-su-device-mobile-rimosso-dal-piano))                                  |
 | RLS mal configurata espone dati privati (inclusi minori)                                   | Violazione privacy grave                            | Audit RLS sistematico (P10-T01, P11-T02), privacy by default                                               |
 | Il concept "tavolo" degrada verso dashboard generica per pressione di velocità di sviluppo | Perdita del differenziale di prodotto               | Vincolo esplicito in `CLAUDE.md`: non sostituire il tavolo con sidebar/dashboard senza richiesta esplicita |
 | Scope creep verso funzionalità social/gestionali                                           | Prodotto snatura la propria identità                | Non-goals espliciti in questo documento, da rispettare in ogni review                                      |

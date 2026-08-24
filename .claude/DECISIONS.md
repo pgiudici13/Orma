@@ -862,3 +862,39 @@ Se invece è una **svista** e dev'essere allineata a DEC-015, il maintainer del 
 - Se intenzionale: nessun change necessario, il codice attuale è corretto.
 - Se sbagliata: le quattro policy vanno aggiornate in una nuova migrazione; questa voce marcata `Accepted`; DEC-015 confermato come principio generale senza eccezioni.
 - Un contributor futuro che noti questa incoerenza comprenderà che è una scelta consapevole, non un'accortezza di copiatura del template.
+
+---
+
+## DEC-025 — P10-T03 (frame rate reali su device mobile) rimosso dal piano
+
+### Status
+
+Accepted
+
+### Context
+
+P10-T03 chiedeva di misurare frame rate e uso GPU della scena tavolo su almeno un device mobile reale, con una soglia dichiarata (≥30 fps, `docs/SDD.md` §10). Dalla Fase 2 in poi ogni fase con una scena 3D ha ripetuto lo stesso limite dichiarato: l'ambiente di sviluppo/CI usato per questo progetto è headless con rendering WebGL software (SwiftShader), che non riflette le prestazioni di una GPU mobile reale — nessun device fisico né simulatore con GPU reale è disponibile in questo ambiente. Il task è rimasto aperto per l'intera durata del progetto (Fase 2 → Fase 10) senza che diventasse mai eseguibile, bloccando la chiusura formale della Fase 10.
+
+Le mitigazioni di design per le performance mobile restano comunque in atto e verificate automaticamente, solo non sul frame rate reale: `frameloop="demand"` (nessun render loop continuo a riposo), due livelli di qualità che riducono ombre/risoluzione ambiente su device meno potenti ([DEC-020](#dec-020--resa-realistica-pbr-in-tempo-reale-ambiente-procedurale-ombre-morbide--niente-path-tracing)), geometrie/texture condivise (nessuna duplicazione per carta), e un budget quantitativo su draw call/triangoli/dimensione texture verificato automaticamente ad ogni run E2E (`tests/e2e/budget.ts`).
+
+### Decision
+
+Rimuovere P10-T03 dal piano (`TODO.md`). La Fase 10 si considera completata con P10-T01 e P10-T02. Il budget quantitativo automatico (`tests/e2e/budget.ts`) resta l'unica verifica di performance continua; la misurazione del frame rate reale su device mobile fisico, se servirà, sarà un'attività manuale ad-hoc del proprietario del progetto fuori dal piano di build, non un task bloccante di nessuna fase.
+
+### Why
+
+- Nessun ambiente disponibile in questa sessione (o in generale per lo sviluppo headless di questo progetto) può eseguirlo: non è una questione di priorità ma di eseguibilità.
+- Un task permanentemente non eseguibile in un piano vivo (`TODO.md`) è peggio di nessun task: fa sembrare "aperta" una fase per un motivo che non verrà mai risolto da dentro il flusso di sviluppo standard, e va ripetuto/ignorato ad ogni fase successiva (già successo per 8 fasi di fila).
+- Le mitigazioni di design richieste da `CLAUDE.md`/`docs/DESIGN.md` (niente 3D "perché disponibile", attenzione alle performance mobile) sono già implementate e verificate dove è possibile verificarle in automatico (budget draw call/triangoli/texture) — rimuovere la sola misura non eseguibile non abbassa lo standard di qualità del progetto, elimina solo un task fantasma dal piano.
+
+### Alternatives
+
+- **Lasciarlo aperto indefinitamente**: scartato — è lo stato attuale, e non si è risolto da solo in 8 fasi.
+- **Simulare il throttling CPU/GPU in Playwright** (`page.emulateCPUThrottling`/DevTools Protocol) invece di un device reale: possibile in teoria, ma misurerebbe comunque le prestazioni della GPU software dell'ambiente CI, non di una GPU mobile reale — non risolverebbe il problema di fondo, aggiungerebbe solo un numero con falsa precisione. Scartato.
+- **Spostarlo a un task ricorrente fuori dal piano di fasi** (es. checklist di rilascio, non un task di build): valutato ma giudicato equivalente alla rimozione per gli scopi di questo piano — se in futuro serve, va riaperto esplicitamente quando un device reale sarà disponibile, non tenuto "aperto" senza criterio di chiusura.
+
+### Consequences
+
+- Fase 10 (`TODO.md`) passa a **completata** senza eccezioni aperte.
+- Tutti i riferimenti a "P10-T03" nei documenti (`PROJECT.md`, `TODO.md`, `docs/SDD.md`) vanno aggiornati per non puntare più a un task rimosso.
+- Se in futuro un device mobile reale (o un CI con GPU reale) diventa disponibile, riaprire questa decisione o crearne una nuova per un task di verifica ad-hoc, invece di far rivivere P10-T03 nel piano di fasi.
