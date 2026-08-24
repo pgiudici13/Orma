@@ -129,6 +129,33 @@ describe.skipIf(!hasCredentials)("RLS — onboarding Reparto", () => {
     });
     expect(rpcError).not.toBeNull();
   });
+
+  it("profiles: B non vede nessuna colonna della riga di A, nemmeno tra membri dello stesso Reparto (P10-T01)", async () => {
+    // Regressione: profiles_select_own concedeva un'intera riga (inclusi
+    // data_nascita e genitore_email) a chiunque appartenesse allo stesso
+    // Reparto — la RLS filtra righe, non colonne, quindi bastava interrogare
+    // PostgREST direttamente per aggirare il filtro "solo id/nome" delle
+    // query applicative (vedi migrazione profiles_reparto_visibility_fix).
+    // Dopo il fix, B non deve vedere la riga di A in nessun caso al di fuori
+    // di admin/Capo-che-valuta-una-richiesta-pendente.
+    const { data, error } = await clientB
+      .from("profiles")
+      .select("id, nome, data_nascita, genitore_email")
+      .eq("id", profileIdA);
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
+  });
+
+  it("membri_reparto: espone solo le colonne dichiarate per il proprio Reparto", async () => {
+    const { data, error } = await clientA.rpc("membri_reparto");
+    expect(error).toBeNull();
+    expect(Array.isArray(data)).toBe(true);
+    for (const membro of data ?? []) {
+      expect(Object.keys(membro).sort()).toEqual(
+        ["id", "nome", "ruolo", "squadriglia_id", "squadriglia_nome"].sort(),
+      );
+    }
+  });
 });
 
 /**

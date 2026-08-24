@@ -22,7 +22,7 @@ export function PanelSection({
     >
       <h3
         className="font-sans text-[10px] tracking-[0.16em] uppercase"
-        style={{ color: "color-mix(in srgb, var(--ink) 55%, transparent)" }}
+        style={{ color: "var(--ink-muted-soft)" }}
       >
         {title}
       </h3>

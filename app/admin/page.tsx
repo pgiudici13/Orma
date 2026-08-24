@@ -90,7 +90,7 @@ export default async function AdminPage() {
     <PaperPage larghezza="max-w-4xl">
       <p
         className="font-sans text-[10px] tracking-[0.16em] uppercase"
-        style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+        style={{ color: "var(--ink-muted)" }}
       >
         Solo lettura — visibilità admin (DEC-015)
       </p>

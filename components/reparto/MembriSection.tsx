@@ -47,7 +47,7 @@ export function MembriSection({ members }: { members: MemberData[] }) {
         <div>
           <p
             className="text-[10px] tracking-[0.14em] uppercase font-sans"
-            style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+            style={{ color: "var(--ink-muted)" }}
           >
             Totale membri
           </p>
@@ -58,7 +58,7 @@ export function MembriSection({ members }: { members: MemberData[] }) {
         <div>
           <p
             className="text-[10px] tracking-[0.14em] uppercase font-sans"
-            style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+            style={{ color: "var(--ink-muted)" }}
           >
             Capi Reparto
           </p>
@@ -69,7 +69,7 @@ export function MembriSection({ members }: { members: MemberData[] }) {
         <div>
           <p
             className="text-[10px] tracking-[0.14em] uppercase font-sans"
-            style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+            style={{ color: "var(--ink-muted)" }}
           >
             Esploratori / Guide
           </p>
@@ -80,7 +80,7 @@ export function MembriSection({ members }: { members: MemberData[] }) {
         <div>
           <p
             className="text-[10px] tracking-[0.14em] uppercase font-sans"
-            style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+            style={{ color: "var(--ink-muted)" }}
           >
             Squadriglie
           </p>
@@ -110,7 +110,7 @@ export function MembriSection({ members }: { members: MemberData[] }) {
           <label
             htmlFor="squadriglia-filter"
             className="text-xs font-sans uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--ink) 65%, transparent)" }}
+            style={{ color: "var(--ink-muted)" }}
           >
             Squadriglia:
           </label>
@@ -142,7 +142,7 @@ export function MembriSection({ members }: { members: MemberData[] }) {
         {filteredMembers.length === 0 ? (
           <p
             className="col-span-full py-8 text-center font-sans text-sm italic"
-            style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+            style={{ color: "var(--ink-muted)" }}
           >
             Nessun membro corrisponde ai criteri di ricerca.
           </p>
@@ -169,7 +169,7 @@ export function MembriSection({ members }: { members: MemberData[] }) {
                 <p
                   className="text-xs font-sans uppercase tracking-wider mt-0.5"
                   style={{
-                    color: "color-mix(in srgb, var(--ink) 65%, transparent)",
+                    color: "var(--ink-muted)",
                   }}
                 >
                   {m.ruolo === "capo" ? "👑 Capo Reparto" : "Esploratore / Guida"}
@@ -196,7 +196,7 @@ export function MembriSection({ members }: { members: MemberData[] }) {
               <div className="text-xs font-sans">
                 <span
                   className="font-medium"
-                  style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+                  style={{ color: "var(--ink-muted-strong)" }}
                 >
                   Specialità ({m.specialitaCompletate.length}):{" "}
                 </span>
@@ -205,7 +205,7 @@ export function MembriSection({ members }: { members: MemberData[] }) {
                     {m.specialitaCompletate.map((s) => s.nome).join(", ")}
                   </span>
                 ) : (
-                  <span className="italic" style={{ color: "color-mix(in srgb, var(--ink) 50%, transparent)" }}>
+                  <span className="italic" style={{ color: "var(--ink-muted-soft)" }}>
                     Nessuna completata
                   </span>
                 )}
@@ -215,7 +215,7 @@ export function MembriSection({ members }: { members: MemberData[] }) {
                 <div className="text-xs font-sans">
                   <span
                     className="font-medium"
-                    style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+                    style={{ color: "var(--ink-muted-strong)" }}
                   >
                     Competenze:{" "}
                   </span>

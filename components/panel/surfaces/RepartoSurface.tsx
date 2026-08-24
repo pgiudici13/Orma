@@ -50,7 +50,7 @@ export function RepartoSurface() {
         </p>
         <p
           className="font-sans text-[11px] tracking-wide uppercase"
-          style={{ color: "color-mix(in srgb, var(--ink) 60%, transparent)" }}
+          style={{ color: "var(--ink-muted)" }}
         >
           {data.isCapo ? "Capo Reparto" : "Esploratore / Guida"}
         </p>
@@ -101,7 +101,7 @@ function RichiesteSection({
               <p
                 className="text-[11px]"
                 style={{
-                  color: "color-mix(in srgb, var(--ink) 60%, transparent)",
+                  color: "var(--ink-muted)",
                 }}
               >
                 {richiesta.repartoNome} · {richiesta.creataIl}
@@ -145,7 +145,7 @@ function RichiesteSection({
                   type="submit"
                   className="cursor-pointer font-sans text-[11px] tracking-wide underline underline-offset-2"
                   style={{
-                    color: "color-mix(in srgb, var(--ink) 65%, transparent)",
+                    color: "var(--ink-muted)",
                   }}
                 >
                   Rifiuta

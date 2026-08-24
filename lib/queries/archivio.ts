@@ -4,11 +4,14 @@ import { createClient } from "@/lib/supabase/server";
  * Archivio storico di Reparto (Fase 9): uscite, campi, luoghi, fotografie e
  * documenti (FR-19, `docs/DATA_MODEL.md`).
  *
- * Come per la vita di Reparto (DEC-018), nessun filtro applicativo aggiunge
- * sicurezza: l'isolamento per Reparto è la RLS; queste query compongono per la
- * UI ciò che il database ha già deciso di mostrare. I file vivono nel bucket
- * privato "archivio": qui si generano solo URL firmati a breve scadenza, mai
- * URL pubblici (SDD §17).
+ * Come per la vita di Reparto (DEC-018), l'isolamento per Reparto è la RLS. I
+ * nomi dei compagni di Reparto (membri, partecipanti a uscite/campi) si
+ * risolvono tramite la funzione `membri_reparto()` (SECURITY DEFINER,
+ * P10-T01), non con un embed diretto su `profiles`: quest'ultima non concede
+ * più visibilità a riga intera tra membri (la RLS filtra righe, non colonne —
+ * avrebbe esposto anche data di nascita e contatti del genitore). I file
+ * vivono nel bucket privato "archivio": qui si generano solo URL firmati a
+ * breve scadenza, mai URL pubblici (SDD §17).
  */
 
 export type LuogoArchivio = {
@@ -184,12 +187,7 @@ export async function getArchivio(): Promise<ArchivioData> {
       )
       .eq("reparto_id", repartoId)
       .order("anno", { ascending: false }),
-    supabase
-      .from("profiles")
-      .select("id, nome")
-      .eq("reparto_id", repartoId)
-      .neq("stato_consenso_genitoriale", "in_attesa")
-      .order("nome"),
+    supabase.rpc("membri_reparto"),
     supabase
       .from("squadriglia")
       .select("id, nome")
@@ -207,12 +205,8 @@ export async function getArchivio(): Promise<ArchivioData> {
     uscitaSquadriglieRes,
     campoSquadriglieRes,
   ] = await Promise.all([
-    supabase
-      .from("uscita_partecipante")
-      .select("uscita_id, profile_id, profile:profile_id(nome)"),
-    supabase
-      .from("campo_partecipante")
-      .select("campo_id, profile_id, profile:profile_id(nome)"),
+    supabase.from("uscita_partecipante").select("uscita_id, profile_id"),
+    supabase.from("campo_partecipante").select("campo_id, profile_id"),
     supabase
       .from("uscita_squadriglia")
       .select("uscita_id, squadriglia_id, squadriglia:squadriglia_id(nome)"),
@@ -220,6 +214,12 @@ export async function getArchivio(): Promise<ArchivioData> {
       .from("campo_squadriglia")
       .select("campo_id, squadriglia_id, squadriglia:squadriglia_id(nome)"),
   ]);
+
+  const membriDb = (membriRes.data ?? []) as unknown as {
+    id: string;
+    nome: string;
+  }[];
+  const nomeMembroById = new Map(membriDb.map((m) => [m.id, m.nome]));
 
   const documentiDb = (documentiRes.data ?? []) as unknown as DocumentoDbRow[];
 
@@ -250,21 +250,19 @@ export async function getArchivio(): Promise<ArchivioData> {
     (uscitaPartecipantiRes.data ?? []) as unknown as {
       uscita_id: string;
       profile_id: string;
-      profile: { nome: string } | null;
     }[],
     (row) => row.uscita_id,
     (row) => row.profile_id,
-    (row) => row.profile?.nome ?? null,
+    (row) => nomeMembroById.get(row.profile_id) ?? null,
   );
   const campoPartecipanti = joinPerEntita(
     (campoPartecipantiRes.data ?? []) as unknown as {
       campo_id: string;
       profile_id: string;
-      profile: { nome: string } | null;
     }[],
     (row) => row.campo_id,
     (row) => row.profile_id,
-    (row) => row.profile?.nome ?? null,
+    (row) => nomeMembroById.get(row.profile_id) ?? null,
   );
   const uscitaSquadriglie = joinPerEntita(
     (uscitaSquadriglieRes.data ?? []) as unknown as {
@@ -335,9 +333,7 @@ export async function getArchivio(): Promise<ArchivioData> {
     ),
     uscite,
     campi,
-    membri: (
-      (membriRes.data ?? []) as unknown as { id: string; nome: string }[]
-    ).map((membro) => ({ id: membro.id, nome: membro.nome })),
+    membri: membriDb.map((membro) => ({ id: membro.id, nome: membro.nome })),
     squadriglie: (
       (squadriglieRes.data ?? []) as unknown as { id: string; nome: string }[]
     ).map((squadriglia) => ({ id: squadriglia.id, nome: squadriglia.nome })),

@@ -5,12 +5,13 @@ import type { EventoData } from "@/lib/scene/objects";
  * Dati della vita di Reparto: membri, Squadriglie, calendario, richieste di
  * adesione (RD-T06).
  *
- * Nessun filtro applicativo aggiunge sicurezza: l'isolamento per Reparto è
- * garantito dalla RLS (DEC-018) e queste query si limitano a comporre per la
- * UI ciò che il database ha già deciso di mostrare all'utente autenticato.
- * L'unico filtro esplicito riguarda i dati che la vista non deve mostrare
- * comunque (data di nascita, contatti del genitore): non vengono proprio
- * chiesti.
+ * L'isolamento per Reparto è garantito dalla RLS (DEC-018). I compagni di
+ * Reparto si leggono tramite la funzione `membri_reparto()` (SECURITY
+ * DEFINER, P10-T01): la tabella `profiles` non concede più visibilità a riga
+ * intera tra membri, perché la RLS di Postgres filtra righe, non colonne — una
+ * select diretta su `profiles` filtrata solo lato query avrebbe comunque
+ * esposto data di nascita e contatti del genitore a chiunque interrogasse
+ * l'API direttamente.
  */
 
 export type MemberData = {
@@ -59,12 +60,12 @@ export const EMPTY_REPARTO: RepartoSurfaceData = {
   richieste: [],
 };
 
-type ProfileDbRow = {
+type MembroRepartoRow = {
   id: string;
   nome: string;
   ruolo: string;
   squadriglia_id: string | null;
-  squadriglia: { id: string; nome: string } | null;
+  squadriglia_nome: string | null;
 };
 
 type EventoDbRow = {
@@ -106,19 +107,14 @@ export async function getRepartoSurface(): Promise<RepartoSurfaceData> {
 
   const repartoId = ownProfile.reparto_id;
 
-  // Recuperata per prima: gli id dei membri servono a restringere le query
+  // Recuperati per primi: gli id dei membri servono a restringere le query
   // su user_specialita/user_competenza (sotto) al solo Reparto corrente,
-  // invece di affidarsi soltanto alla RLS per scartarle lato client.
-  const { data: profilesData } = await supabase
-    .from("profiles")
-    .select(
-      "id, nome, ruolo, squadriglia_id, squadriglia:squadriglia_id(id, nome)",
-    )
-    .eq("reparto_id", repartoId)
-    .neq("stato_consenso_genitoriale", "in_attesa")
-    .order("nome");
-
-  const profilesDb = (profilesData ?? []) as unknown as ProfileDbRow[];
+  // invece di affidarsi soltanto alla RLS per scartarle lato client. Non è
+  // possibile una select diretta su `profiles` per righe altrui dopo P10-T01
+  // (20260823172537_profiles_reparto_visibility_fix.sql): l'unica via è
+  // membri_reparto().
+  const { data: profilesData } = await supabase.rpc("membri_reparto");
+  const profilesDb = (profilesData ?? []) as unknown as MembroRepartoRow[];
   const memberIds = profilesDb.map((profile) => profile.id);
 
   const [
@@ -207,7 +203,7 @@ export async function getRepartoSurface(): Promise<RepartoSurfaceData> {
       nome: profile.nome,
       ruolo: profile.ruolo,
       squadrigliaId: profile.squadriglia_id,
-      squadrigliaNome: profile.squadriglia?.nome ?? null,
+      squadrigliaNome: profile.squadriglia_nome,
       specialitaCompletate: specMap.get(profile.id) ?? [],
       competenzeCompletate: compMap.get(profile.id) ?? [],
       // L'ultima registrata in ordine di inserimento: è la Tappa in corso.

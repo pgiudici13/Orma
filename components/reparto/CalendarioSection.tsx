@@ -43,7 +43,7 @@ export function CalendarioSection({
           </h2>
           <p
             className="font-sans text-xs mt-1"
-            style={{ color: "color-mix(in srgb, var(--ink) 70%, transparent)" }}
+            style={{ color: "var(--ink-muted-strong)" }}
           >
             Uscite, campi, riunioni ed eventi del Reparto
           </p>
@@ -96,9 +96,7 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-titolo"
                 className="block uppercase tracking-wider mb-1"
-                style={{
-                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
-                }}
+                style={{ color: "var(--ink-muted-strong)" }}
               >
                 Titolo evento *
               </label>
@@ -122,9 +120,7 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-tipo"
                 className="block uppercase tracking-wider mb-1"
-                style={{
-                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
-                }}
+                style={{ color: "var(--ink-muted-strong)" }}
               >
                 Tipo di attività *
               </label>
@@ -151,9 +147,7 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-data-inizio"
                 className="block uppercase tracking-wider mb-1"
-                style={{
-                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
-                }}
+                style={{ color: "var(--ink-muted-strong)" }}
               >
                 Data inizio *
               </label>
@@ -177,9 +171,7 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-data-fine"
                 className="block uppercase tracking-wider mb-1"
-                style={{
-                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
-                }}
+                style={{ color: "var(--ink-muted-strong)" }}
               >
                 Data fine (se su più giorni)
               </label>
@@ -201,9 +193,7 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-luogo"
                 className="block uppercase tracking-wider mb-1"
-                style={{
-                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
-                }}
+                style={{ color: "var(--ink-muted-strong)" }}
               >
                 Luogo / Base scout
               </label>
@@ -226,9 +216,7 @@ export function CalendarioSection({
               <label
                 htmlFor="evento-descrizione"
                 className="block uppercase tracking-wider mb-1"
-                style={{
-                  color: "color-mix(in srgb, var(--ink) 70%, transparent)",
-                }}
+                style={{ color: "var(--ink-muted-strong)" }}
               >
                 Descrizione / Note operative
               </label>
@@ -284,7 +272,7 @@ export function CalendarioSection({
       <div className="flex flex-col gap-4">
         <h3
           className="text-xs uppercase tracking-widest font-sans font-semibold"
-          style={{ color: "color-mix(in srgb, var(--ink) 65%, transparent)" }}
+          style={{ color: "var(--ink-muted)" }}
         >
           Prossimi Eventi in Programma
         </h3>
@@ -296,7 +284,7 @@ export function CalendarioSection({
               backgroundColor: "var(--paper-base)",
               border:
                 "1px solid color-mix(in srgb, var(--wood-dark) 18%, transparent)",
-              color: "color-mix(in srgb, var(--ink) 60%, transparent)",
+              color: "var(--ink-muted)",
             }}
           >
             Nessun evento futuro registrato al momento.
@@ -324,7 +312,7 @@ export function CalendarioSection({
         <div className="flex flex-col gap-4 mt-4">
           <h3
             className="text-xs uppercase tracking-widest font-sans font-semibold"
-            style={{ color: "color-mix(in srgb, var(--ink) 50%, transparent)" }}
+            style={{ color: "var(--ink-muted-soft)" }}
           >
             Attività Passate
           </h3>
@@ -598,7 +586,7 @@ function EventCard({
 
           <div
             className="text-xs font-sans mt-1 flex items-center gap-3 flex-wrap"
-            style={{ color: "color-mix(in srgb, var(--ink) 75%, transparent)" }}
+            style={{ color: "var(--ink-muted-strong)" }}
           >
             <span>
               📅 {event.dataInizio}

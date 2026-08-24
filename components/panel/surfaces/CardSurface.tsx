@@ -171,6 +171,7 @@ function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
                   rows={2}
                   defaultValue={nota.testo}
                   required
+                  aria-label="Modifica nota"
                   className="rounded-[2px] p-2 text-sm"
                   style={fieldStyle}
                 />
@@ -225,6 +226,7 @@ function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
           rows={2}
           placeholder="Aggiungi una nota…"
           required
+          aria-label="Aggiungi una nota"
           className="rounded-[2px] p-2 text-sm"
           style={fieldStyle}
         />

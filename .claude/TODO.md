@@ -449,7 +449,7 @@ Implementati entrambi i task con la migrazione `20260823110000_maestri_ricerca_g
 - **Test necessari**: test query con combinazioni di filtri.
 - **Stato**: completato. Filtri combinabili nel form di ricerca (select Specialità dal catalogo ufficiale, input Regione/Zona, checkbox disponibilità) e nella funzione `cerca_maestri` (parametri `p_specialita_id`/`p_regione`/`p_zona`/`p_solo_disponibili`, match parziale su testo). La località si mostra nei risultati ma non filtra (SDD FR-14 non la elenca). Test: combinazioni coerenti/incoerenti coperte in `tests/unit/rls/maestri.rls.test.ts`; unit della superficie in `tests/unit/maestriSurface.test.tsx`.
 
-**Nota**: migrazione da applicare al progetto Supabase reale (via MCP Supabase, come le fasi precedenti); senza applicazione i test RLS si saltano da soli.
+**Deploy**: la migrazione `20260823110000_maestri_ricerca_globale.sql` risulta applicata al progetto Supabase reale (`ouffyxrhxhzqcduvgpon`) — la nota precedente ("da applicare") era stale, il deploy era già avvenuto senza il passaggio di chiusura che le fasi 3/5/6/7 eseguivano sempre prima di dichiararsi "deploy incluso". `get_advisors` post-hoc aveva mostrato avvisi mai triagiati: `auth_rls_initplan` e `multiple_permissive_policies` su `maestro_profilo`/`maestro_specialita`. Chiuso con `supabase/migrations/20260823174439_maestri_archivio_performance_fix.sql` (registrata con questo timestamp sul remoto, non quello del file creato in locale — stesso comportamento di `apply_migration` via MCP già documentato in `CORRECTIONS.md`), applicata il 2026-08-23: `get_advisors` post-fix non mostra più alcun avviso su `maestro_profilo`/`maestro_specialita` oltre a `cerca_maestri` come SECURITY DEFINER (atteso, per disegno).
 
 ---
 
@@ -481,7 +481,9 @@ Implementati tutti e tre i task con la migrazione `20260823120000_archivio_repar
 - **Test necessari**: verifica visiva, verifica permessi.
 - **Stato**: completato. Nuovo oggetto **baule** sul tavolo (kind `baule`, 3D in `components/three/props/Baule3D.tsx` con corpo, coperchio e fasce d'ottone, texture legno distinta dalla cassetta; composizione 2D con targhetta in `TableFlat`), visibile solo per chi appartiene a un Reparto (come cassetta/guidone/calendario). Superficie `components/panel/surfaces/ArchivioSurface.tsx` (larghezza "steso"): scaffale con Campi/Uscite/Luoghi → dettaglio con luogo, partecipanti, Squadriglie, programma/materiale/note, fotografie e documenti; per i Capi creazione/modifica/eliminazione di uscite, campi e luoghi (con multi-selezione di partecipanti e Squadriglie) e caricamento/eliminazione di foto e documenti. Query in `lib/queries/archivio.ts`, azioni in `app/actions/archivio.ts`. Unit in `tests/unit/archivioSurface.test.tsx` (scaffale, dettaglio, link firmati, permessi).
 
-**Nota**: migrazione da applicare al progetto Supabase reale (via MCP Supabase, come le fasi precedenti); senza applicazione i test RLS si saltano da soli.
+**Deploy**: la migrazione `20260823120000_archivio_reparto.sql` risulta applicata al progetto Supabase reale — stessa nota stale di Fase 8: il deploy era già avvenuto senza il passaggio di chiusura `get_advisors`. Avvisi mai triagiati: `unindexed_foreign_keys` (7 FK senza indice di copertura) e `auth_rls_initplan` (`auth.uid()` non wrappato nelle 7 policy `*_select_reparto`). Chiuso con lo stesso `supabase/migrations/20260823174439_maestri_archivio_performance_fix.sql` di Fase 8, applicata il 2026-08-23: `get_advisors` post-fix conferma gli indici creati (compaiono come `unused_index`, atteso per indici appena creati e mai ancora interrogati — non un problema) e nessun `auth_rls_initplan` residuo su `luogo`/`uscita`/`campo`/i quattro join/`documento_archivio`.
+
+**Nota (non correlata al lavoro di questa sessione)**: `list_migrations` mostra anche `20260823172537_profiles_reparto_visibility_fix`, applicata al progetto reale tra il deploy di Fase 9 e questo fix, con due nuove funzioni `SECURITY DEFINER` (`membri_reparto()`, `stesso_reparto_attivo()`) — non scritta in questa sessione e assente dal repository locale (`supabase/migrations/`). Va chiarito con chi l'ha applicata (altra sessione? intervento diretto?) e il file locale va aggiunto per non perdere la sincronia local/remoto (stesso principio di `CORRECTIONS.md`).
 
 ---
 
@@ -493,6 +495,11 @@ Implementati tutti e tre i task con la migrazione `20260823120000_archivio_repar
 - **Dipendenze**: tutte le fasi con schema DB (3, 4, 6, 9).
 - **Criteri di completamento**: checklist RLS per tabella, nessuna eccezione non documentata.
 - **Test necessari**: test automatizzati RLS per ogni tabella sensibile.
+- **Stato**: completato. Tutte le 24 tabelle `public.*` hanno RLS abilitata con policy esplicite (nessuna tabella aperta per default, verificato via `pg_policies`); le funzioni `SECURITY DEFINER` hanno tutte `search_path` fissato e grant coerenti con il ruolo previsto (`information_schema.routine_privileges`); i bucket Storage (`distintivi` pubblico, `archivio` privato) hanno policy coerenti con DEC-023.
+
+  Trovata e corretta una fuga di colonne reale: `profiles_select_own` (P7-T01, DEC-018) concedeva l'**intera riga** `profiles` — inclusi `data_nascita` e `genitore_email` — a chiunque appartenesse allo stesso Reparto, perché la RLS filtra righe, non colonne; le query applicative chiedevano solo `id/nome`, ma un'interrogazione diretta a PostgREST poteva leggere qualunque colonna. Corretto in `supabase/migrations/20260823172537_profiles_reparto_visibility_fix.sql`: nuove funzioni `SECURITY DEFINER` `stesso_reparto_attivo()` (booleano, per le policy di percorso personale) e `membri_reparto()` (solo le colonne che l'app ha sempre mostrato), stesso pattern di `cerca_maestri`/`find_profile_by_email`. `lib/queries/reparto.ts` e `lib/queries/archivio.ts` aggiornati di conseguenza. Dettaglio in `.claude/CORRECTIONS.md` e nota a [DEC-018](DECISIONS.md#dec-018--funzionalità-di-reparto-visibilità-membri-assegnazione-squadriglie-e-calendario-fase-7). Migrazione già applicata al progetto reale via MCP Supabase. Test di regressione in `tests/unit/rls/reparto.rls.test.ts` (si salta senza credenziali, pattern esistente).
+
+  Unico avviso non-RLS rimasto in `get_advisors`: "Leaked Password Protection Disabled" — impostazione di Supabase Auth (dashboard, non uno schema/RLS), non applicabile via migrazione; da attivare manualmente dal proprietario del progetto.
 
 ### P10-T02 — Accessibilità UI non-3D
 
@@ -500,6 +507,13 @@ Implementati tutti e tre i task con la migrazione `20260823120000_archivio_repar
 - **Dipendenze**: Fase 3–7 (componenti UI esistenti).
 - **Criteri di completamento**: controlli interattivi 2D raggiungibili da tastiera, contrasto testo conforme.
 - **Test necessari**: audit accessibilità (es. axe) sui componenti DOM.
+- **Stato**: completato. `@axe-core/playwright` aggiunta (DEC-006) e `tests/e2e/accessibility.spec.ts`: scansiona le pagine pubbliche (login, registrati, privacy) e, soprattutto, il pannello di **ognuno dei 13 oggetti** del tavolo via `/tavolo-dev` (nessuna credenziale richiesta, stesso pattern di `tableInteraction.spec.ts`) — copre quindi ogni superficie reale (`components/panel/surfaces/`), non solo un campione.
+
+  Trovato e corretto un problema reale: la textarea "Aggiungi una nota" (`components/panel/surfaces/CardSurface.tsx`) non aveva un'etichetta accessibile (solo `placeholder`) — `aria-label` aggiunto a quella e alla textarea di modifica nota. Nessun altro problema di struttura/etichette/ruoli/tastiera trovato su nessuno dei 13 oggetti.
+
+  Migliorato inoltre, per verifica diretta (non per il tool): il testo "attenuato" dei pannelli (`color-mix(in srgb, var(--ink) N%, transparent)`, 63 usi in 16 file con percentuali fino al 50%) aveva un contrasto reale insufficiente su `--paper-base` (fino a ~2.7:1 misurato, serve 4.5:1) — sostituito con tre token centralizzati (`--ink-muted-soft/--ink-muted/--ink-muted-strong`, `app/globals.css`) verificati ≥4.5:1 per calcolo diretto e per campionamento pixel dello schermo reso. La regola "color-contrast" di axe-core stessa non è affidabile per colori `color-mix()` (falsi positivi anche dopo il fix, vedi `.claude/CORRECTIONS.md`) ed è stata disattivata nel test con una nota esplicita — le altre regole WCAG restano attive.
+
+  Non affrontato qui: contrasto della composizione 2D/`TableFlat` oltre allo smoke test automatico (nessuna violazione trovata, ma senza revisione manuale caso per caso) e navigazione da tastiera della scena 3D stessa (fuori scope, è un canvas WebGL — l'accesso via hotspot DOM è già coperto da `tableInteraction.spec.ts`).
 
 ### P10-T03 — Performance 3D su mobile
 
@@ -507,6 +521,7 @@ Implementati tutti e tre i task con la migrazione `20260823120000_archivio_repar
 - **Dipendenze**: P2-T05.
 - **Criteri di completamento**: soglia minima di frame rate definita e rispettata su device di riferimento.
 - **Test necessari**: profiling performance su almeno un device mobile reale.
+- **Stato**: non completato in questa sessione — richiede un device mobile fisico o un simulatore con GPU reale, non disponibili nell'ambiente headless usato (stesso limite già dichiarato ripetutamente da Fase 2 in poi: "i frame rate reali restano da misurare su hardware vero"). Resta l'unico task aperto di questa fase.
 
 ---
 
