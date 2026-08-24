@@ -8,6 +8,18 @@ import {
   modificaEvento,
 } from "@/app/reparto/actions";
 
+const fieldStyleLarge = {
+  backgroundColor: "var(--paper-base)",
+  border: "1px solid color-mix(in srgb, var(--wood-dark) 30%, transparent)",
+  color: "var(--ink)",
+} as const;
+
+const fieldStyleDirect = {
+  backgroundColor: "var(--paper-base)",
+  border: "1px solid var(--wood-dark)",
+  color: "var(--ink)",
+} as const;
+
 export function CalendarioSection({
   events,
   isCapoOrAdmin,
@@ -107,12 +119,7 @@ export function CalendarioSection({
                 placeholder="es. Uscita dei Passaggi"
                 required
                 className="w-full rounded-[2px] px-3 py-1.5 text-sm"
-                style={{
-                  backgroundColor: "var(--paper-base)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--wood-dark) 30%, transparent)",
-                  color: "var(--ink)",
-                }}
+                style={fieldStyleLarge}
               />
             </div>
 
@@ -129,12 +136,7 @@ export function CalendarioSection({
                 name="tipo"
                 required
                 className="w-full rounded-[2px] px-3 py-1.5 text-sm cursor-pointer"
-                style={{
-                  backgroundColor: "var(--paper-base)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--wood-dark) 30%, transparent)",
-                  color: "var(--ink)",
-                }}
+                style={fieldStyleLarge}
               >
                 <option value="uscita">Uscita</option>
                 <option value="campo">Campo</option>
@@ -158,12 +160,7 @@ export function CalendarioSection({
                 required
                 defaultValue={todayStr}
                 className="w-full rounded-[2px] px-3 py-1.5 text-sm"
-                style={{
-                  backgroundColor: "var(--paper-base)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--wood-dark) 30%, transparent)",
-                  color: "var(--ink)",
-                }}
+                style={fieldStyleLarge}
               />
             </div>
 
@@ -180,12 +177,7 @@ export function CalendarioSection({
                 type="date"
                 name="data_fine"
                 className="w-full rounded-[2px] px-3 py-1.5 text-sm"
-                style={{
-                  backgroundColor: "var(--paper-base)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--wood-dark) 30%, transparent)",
-                  color: "var(--ink)",
-                }}
+                style={fieldStyleLarge}
               />
             </div>
 
@@ -203,12 +195,7 @@ export function CalendarioSection({
                 name="luogo"
                 placeholder="es. Rifugio Scout Monte Sole"
                 className="w-full rounded-[2px] px-3 py-1.5 text-sm"
-                style={{
-                  backgroundColor: "var(--paper-base)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--wood-dark) 30%, transparent)",
-                  color: "var(--ink)",
-                }}
+                style={fieldStyleLarge}
               />
             </div>
 
@@ -226,12 +213,7 @@ export function CalendarioSection({
                 rows={3}
                 placeholder="Dettagli logistici, materiale occorrente, orari di ritrovo…"
                 className="w-full rounded-[2px] px-3 py-1.5 text-sm"
-                style={{
-                  backgroundColor: "var(--paper-base)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--wood-dark) 30%, transparent)",
-                  color: "var(--ink)",
-                }}
+                style={fieldStyleLarge}
               />
             </div>
           </div>
@@ -394,11 +376,7 @@ function EventCard({
               defaultValue={event.titolo}
               required
               className="w-full rounded-[2px] px-3 py-1.5 text-sm"
-              style={{
-                backgroundColor: "var(--paper-base)",
-                border: "1px solid var(--wood-dark)",
-                color: "var(--ink)",
-              }}
+              style={fieldStyleDirect}
             />
           </div>
 
@@ -414,11 +392,7 @@ function EventCard({
               name="tipo"
               defaultValue={event.tipo}
               className="w-full rounded-[2px] px-3 py-1.5 text-sm cursor-pointer"
-              style={{
-                backgroundColor: "var(--paper-base)",
-                border: "1px solid var(--wood-dark)",
-                color: "var(--ink)",
-              }}
+              style={fieldStyleDirect}
             >
               <option value="uscita">Uscita</option>
               <option value="campo">Campo</option>
@@ -441,11 +415,7 @@ function EventCard({
               defaultValue={event.dataInizio}
               required
               className="w-full rounded-[2px] px-3 py-1.5 text-sm"
-              style={{
-                backgroundColor: "var(--paper-base)",
-                border: "1px solid var(--wood-dark)",
-                color: "var(--ink)",
-              }}
+              style={fieldStyleDirect}
             />
           </div>
 
@@ -462,11 +432,7 @@ function EventCard({
               name="data_fine"
               defaultValue={event.dataFine ?? ""}
               className="w-full rounded-[2px] px-3 py-1.5 text-sm"
-              style={{
-                backgroundColor: "var(--paper-base)",
-                border: "1px solid var(--wood-dark)",
-                color: "var(--ink)",
-              }}
+              style={fieldStyleDirect}
             />
           </div>
 
@@ -483,11 +449,7 @@ function EventCard({
               name="luogo"
               defaultValue={event.luogo ?? ""}
               className="w-full rounded-[2px] px-3 py-1.5 text-sm"
-              style={{
-                backgroundColor: "var(--paper-base)",
-                border: "1px solid var(--wood-dark)",
-                color: "var(--ink)",
-              }}
+              style={fieldStyleDirect}
             />
           </div>
 
@@ -504,11 +466,7 @@ function EventCard({
               rows={3}
               defaultValue={event.descrizione ?? ""}
               className="w-full rounded-[2px] px-3 py-1.5 text-sm"
-              style={{
-                backgroundColor: "var(--paper-base)",
-                border: "1px solid var(--wood-dark)",
-                color: "var(--ink)",
-              }}
+              style={fieldStyleDirect}
             />
           </div>
         </div>

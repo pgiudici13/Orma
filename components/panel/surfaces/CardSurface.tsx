@@ -187,12 +187,14 @@ function NoteSection({ kind, card }: { kind: ContentKind; card: CardData }) {
               </form>
               <form
                 action={async () => {
-                  try {
-                    await deleteNota(nota.id);
-                  } catch (e) {
-                    setError(
-                      e instanceof Error ? e.message : "Errore imprevisto.",
-                    );
+                  if (confirm("Sei sicuro di voler eliminare questa nota?")) {
+                    try {
+                      await deleteNota(nota.id);
+                    } catch (e) {
+                      setError(
+                        e instanceof Error ? e.message : "Errore imprevisto.",
+                      );
+                    }
                   }
                 }}
               >

@@ -9,6 +9,12 @@ import {
 } from "@/app/reparto/actions";
 import type { MemberData, SquadrigliaData } from "@/lib/queries/reparto";
 
+const fieldStyle = {
+  backgroundColor: "var(--paper-base)",
+  border: "1px solid color-mix(in srgb, var(--wood-dark) 30%, transparent)",
+  color: "var(--ink)",
+} as const;
+
 export function SquadriglieSection({
   squadriglie,
   members,
@@ -99,12 +105,7 @@ export function SquadriglieSection({
               placeholder="Nome Squadriglia"
               required
               className="w-full rounded-[2px] px-3 py-1.5 text-sm font-sans"
-              style={{
-                backgroundColor: "var(--paper-base)",
-                border:
-                  "1px solid color-mix(in srgb, var(--wood-dark) 30%, transparent)",
-                color: "var(--ink)",
-              }}
+              style={fieldStyle}
             />
           </div>
           <div className="flex items-center gap-2 mt-2 sm:mt-5">

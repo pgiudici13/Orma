@@ -24,7 +24,7 @@ export async function markCompleted(kind: CompletableKind, contentId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) throw new Error("Sessione scaduta. Ricarica la pagina e riprova.");
 
   const { error } = await supabase
     .from(TABLE_BY_KIND[kind])
@@ -57,7 +57,7 @@ export async function addNota(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) throw new Error("Sessione scaduta. Ricarica la pagina e riprova.");
 
   const { error } = await supabase.from("nota").insert({
     profile_id: user.id,
@@ -86,7 +86,7 @@ export async function updateNota(id: string, formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) throw new Error("Sessione scaduta. Ricarica la pagina e riprova.");
 
   const { error } = await supabase
     .from("nota")
@@ -110,7 +110,7 @@ export async function deleteNota(id: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) throw new Error("Sessione scaduta. Ricarica la pagina e riprova.");
 
   const { error } = await supabase
     .from("nota")
@@ -144,7 +144,7 @@ export async function assignMaestroInterno(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) throw new Error("Sessione scaduta. Ricarica la pagina e riprova.");
 
   const { data: found, error: lookupError } = await supabase
     .rpc("find_profile_by_email", { p_email: emailTrim })
@@ -189,7 +189,7 @@ export async function addMaestroEsterno(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) throw new Error("Sessione scaduta. Ricarica la pagina e riprova.");
 
   const { data: maestro, error: insertError } = await supabase
     .from("maestro_esterno")

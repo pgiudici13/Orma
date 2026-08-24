@@ -51,6 +51,7 @@ export async function creaSquadriglia(formData: FormData) {
       `Errore nella creazione della Squadriglia: ${error.message}`,
     );
   revalidatePath("/reparto");
+  revalidatePath("/");
 }
 
 export async function rinominaSquadriglia(
@@ -72,6 +73,7 @@ export async function rinominaSquadriglia(
 
   if (error) throw new Error(`Errore nella modifica: ${error.message}`);
   revalidatePath("/reparto");
+  revalidatePath("/");
 }
 
 export async function eliminaSquadriglia(squadrigliaId: string) {
@@ -87,6 +89,7 @@ export async function eliminaSquadriglia(squadrigliaId: string) {
 
   if (error) throw new Error(`Errore nell'eliminazione: ${error.message}`);
   revalidatePath("/reparto");
+  revalidatePath("/");
 }
 
 export async function assegnaMembroSquadriglia(
@@ -111,6 +114,7 @@ export async function assegnaMembroSquadriglia(
 
   if (error) throw new Error(`Errore nell'assegnazione: ${error.message}`);
   revalidatePath("/reparto");
+  revalidatePath("/");
 }
 
 export async function creaEvento(formData: FormData) {

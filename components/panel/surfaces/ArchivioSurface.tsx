@@ -199,13 +199,21 @@ function Scaffale({
                 {data.isCapoOrAdmin ? (
                   <form
                     action={async () => {
-                      try {
-                        await eliminaLuogo(luogo.id);
-                        onMutated();
-                      } catch (e) {
-                        setLuoghiError(
-                          e instanceof Error ? e.message : "Errore imprevisto.",
-                        );
+                      if (
+                        confirm(
+                          `Sei sicuro di voler eliminare il luogo "${luogo.nome}"?`,
+                        )
+                      ) {
+                        try {
+                          await eliminaLuogo(luogo.id);
+                          onMutated();
+                        } catch (e) {
+                          setLuoghiError(
+                            e instanceof Error
+                              ? e.message
+                              : "Errore imprevisto.",
+                          );
+                        }
                       }
                     }}
                   >
@@ -419,7 +427,26 @@ function Dettaglio({
                 {modifica ? "Annulla modifica" : "Modifica"}
               </button>
             ) : null}
-            <form action={elimina}>
+            <form
+              action={async () => {
+                const tipoLabel =
+                  entitaTipo === "campo"
+                    ? "campo"
+                    : entitaTipo === "uscita"
+                      ? "uscita"
+                      : "luogo";
+                const nome =
+                  "titolo" in dettaglio ? dettaglio.titolo : dettaglio.nome;
+
+                if (
+                  confirm(
+                    `Sei sicuro di voler eliminare questo ${tipoLabel} "${nome}"?`,
+                  )
+                ) {
+                  await elimina();
+                }
+              }}
+            >
               <button
                 type="submit"
                 className="cursor-pointer underline underline-offset-2"
@@ -658,13 +685,19 @@ function SezioneDocumenti({
               {isCapoOrAdmin ? (
                 <form
                   action={async () => {
-                    try {
-                      await eliminaDocumento(documento.id);
-                      onMutated();
-                    } catch (e) {
-                      setError(
-                        e instanceof Error ? e.message : "Errore imprevisto.",
-                      );
+                    if (
+                      confirm(
+                        `Sei sicuro di voler eliminare il documento "${documento.nomeFile}"?`,
+                      )
+                    ) {
+                      try {
+                        await eliminaDocumento(documento.id);
+                        onMutated();
+                      } catch (e) {
+                        setError(
+                          e instanceof Error ? e.message : "Errore imprevisto.",
+                        );
+                      }
                     }
                   }}
                 >
