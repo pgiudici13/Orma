@@ -10,6 +10,7 @@ import {
   TOKEN_CONSENSO_VALIDITA_GIORNI,
   richiedeConsensoGenitoriale,
 } from "@/lib/consent";
+import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
 export type RegistratiState = { error: string } | null;
 
@@ -43,6 +44,12 @@ export async function registrati(
       error:
         "Inserisci l'email di un genitore/tutore: è richiesta sotto i 14 anni.",
     };
+  }
+
+  const ip = await clientIp();
+  const entroLimite = await checkRateLimit(`registrati:ip:${ip}`, 5, 60);
+  if (!entroLimite) {
+    return { error: "Troppi tentativi. Riprova tra qualche minuto." };
   }
 
   const supabase = await createClient();

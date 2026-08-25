@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
 export type ConsensoState = { success: boolean; error?: string } | null;
 
@@ -19,6 +20,15 @@ export async function confermaConsenso(
     return {
       success: false,
       error: "Devi confermare la dichiarazione per procedere.",
+    };
+  }
+
+  const ip = await clientIp();
+  const entroLimite = await checkRateLimit(`consenso:ip:${ip}`, 10, 15);
+  if (!entroLimite) {
+    return {
+      success: false,
+      error: "Troppi tentativi. Riprova tra qualche minuto.",
     };
   }
 

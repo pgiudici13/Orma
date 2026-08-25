@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
 export type LoginState = { error: string } | null;
 
@@ -14,6 +15,15 @@ export async function login(
 
   if (!email || !password) {
     return { error: "Inserisci email e password." };
+  }
+
+  const ip = await clientIp();
+  const [entroLimiteIp, entroLimiteCoppia] = await Promise.all([
+    checkRateLimit(`login:ip:${ip}`, 30, 15),
+    checkRateLimit(`login:ip-email:${ip}:${email.toLowerCase()}`, 8, 15),
+  ]);
+  if (!entroLimiteIp || !entroLimiteCoppia) {
+    return { error: "Troppi tentativi. Riprova tra qualche minuto." };
   }
 
   const supabase = await createClient();

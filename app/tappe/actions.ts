@@ -39,11 +39,15 @@ export async function markTappaCompleted(tappaId: string) {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase
+  const { error } = await supabase
     .from("user_tappa")
     .update({ data_completamento: new Date().toISOString().slice(0, 10) })
     .eq("profile_id", user.id)
     .eq("tappa_id", tappaId);
+
+  if (error) {
+    throw new Error(`Impossibile completare la Tappa: ${error.message}`);
+  }
 
   revalidatePath("/tappe");
   revalidatePath("/");

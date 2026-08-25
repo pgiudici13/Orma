@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 /**
  * Error boundary globale (App Router).
  *
@@ -21,6 +23,13 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Errori originati durante il rendering server sono già loggati da Next.js
+  // lato server; questo copre anche i casi puramente client (post-idratazione),
+  // altrimenti visibili solo nella console del browser dell'utente.
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
     <div
       className="flex min-h-screen items-center justify-center p-6"
