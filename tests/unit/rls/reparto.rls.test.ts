@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Test RLS per l'onboarding Reparto (P5-T02, DEC-016) e per Squadriglia/ruolo
@@ -11,7 +12,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
  *
  * Env richieste: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
  * RLS_TEST_USER_A_EMAIL/PASSWORD, RLS_TEST_USER_B_EMAIL/PASSWORD. Senza,
- * la suite si salta da sola.
+ * la suite si salta da sola. Richiede anche SUPABASE_SECRET_KEY (già usata
+ * dall'app, vedi lib/supabase/admin.ts): solo per ripulire in afterAll la
+ * richiesta_reparto di prova, che il proprietario non può cancellare da sé
+ * (nessuna policy di delete, per design — vedi il commento in afterAll).
  */
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -57,10 +61,13 @@ describe.skipIf(!hasCredentials)("RLS — onboarding Reparto", () => {
   });
 
   afterAll(async () => {
-    await clientA
-      .from("richiesta_reparto")
-      .delete()
-      .eq("profile_id", profileIdA);
+    // richiesta_reparto non ha policy di delete per il proprietario (decisa
+    // solo tramite decidi_richiesta_reparto(), per design): un delete con
+    // clientA non solleva errore ma non cancella nulla, lasciando una riga
+    // "in_attesa" che fa fallire la prossima esecuzione per violazione
+    // dell'indice unico parziale — va ripulita con un client che bypassa la RLS.
+    const admin = createAdminClient();
+    await admin.from("richiesta_reparto").delete().eq("profile_id", profileIdA);
   });
 
   it("reparto: leggibile da un utente autenticato, non scrivibile", async () => {

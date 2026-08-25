@@ -15,10 +15,13 @@ function buildCsp() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   // In sviluppo il compilatore di Next.js (fast refresh/HMR) genera codice che
   // passa da eval(): senza 'unsafe-eval' qui, `npm run dev` si romperebbe.
-  // La build di produzione non ne ha bisogno.
+  // Vercel Analytics/Speed Insights, in dev, caricano la variante di debug da
+  // va.vercel-scripts.com (dominio esterno): in produzione su Vercel sono
+  // invece serviti same-origin da /_vercel/..., verificato senza violazioni
+  // CSP reali. Nessuno dei due extra serve alla build di produzione.
   const scriptSrc =
     process.env.NODE_ENV === "development"
-      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com"
       : "script-src 'self' 'unsafe-inline'";
   return [
     "default-src 'self'",

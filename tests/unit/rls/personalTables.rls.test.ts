@@ -8,7 +8,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
  * personali o di Reparto.
  *
  * Richiede un progetto Supabase reale raggiungibile e due utenti di prova già
- * registrati (con profilo attivo, non in attesa di consenso genitoriale):
+ * registrati (con profilo attivo, non in attesa di consenso genitoriale),
+ * **nello stesso Reparto** (necessario per il test di visibilità di
+ * user_tappa più sotto — non richiesto dagli altri casi, che restano isolati
+ * indipendentemente dal Reparto):
  * NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
  * RLS_TEST_USER_A_EMAIL/PASSWORD, RLS_TEST_USER_B_EMAIL/PASSWORD.
  * Senza queste variabili la suite si salta da sola, come i test e2e
@@ -91,6 +94,14 @@ describe.skipIf(!hasCredentials)("RLS — isolamento tra utenti", () => {
     updatePatch: Record<string, unknown>;
   };
 
+  // user_tappa non è qui: a differenza di user_specialita/user_competenza
+  // (visibili ai compagni di Reparto solo se `stato = 'completata'`), la
+  // policy `user_tappa_select_own` (P7-T01, migrazione reparto_funzionalita)
+  // rende visibili ai membri dello stesso Reparto TUTTE le Tappe, non solo
+  // quelle completate — scelta di design documentata nel commento della
+  // migrazione ("I membri dello stesso Reparto possono consultare le Tappe
+  // degli altri membri"), non un'eccezione dell'isolamento di questo test.
+  // Verificato in un test dedicato più sotto.
   const cases: Case[] = [
     {
       table: "user_specialita",
@@ -101,11 +112,6 @@ describe.skipIf(!hasCredentials)("RLS — isolamento tra utenti", () => {
       table: "user_competenza",
       row: () => ({ competenza_id: competenzaId }),
       updatePatch: { stato: "completata" },
-    },
-    {
-      table: "user_tappa",
-      row: () => ({ tappa_id: tappaId }),
-      updatePatch: { data_completamento: "2026-01-01" },
     },
     {
       table: "nota",
@@ -169,4 +175,51 @@ describe.skipIf(!hasCredentials)("RLS — isolamento tra utenti", () => {
       await clientA.from(table).delete().eq("id", rowId);
     },
   );
+
+  it("user_tappa: un compagno di Reparto la vede (per design, P7-T01) ma non può modificarla/cancellarla", async () => {
+    // Richiede A e B nello stesso Reparto (vedi commento in testa al file):
+    // a differenza di user_specialita/user_competenza (visibili ai compagni
+    // di Reparto solo se completate), user_tappa è visibile ai membri dello
+    // stesso Reparto indipendentemente dallo stato di completamento — vedi
+    // il commento della policy in
+    // supabase/migrations/20260823100000_reparto_funzionalita.sql.
+    const { data: inserted, error: insertError } = await clientA
+      .from("user_tappa")
+      .insert({ profile_id: profileIdA, tappa_id: tappaId })
+      .select()
+      .single();
+    expect(insertError).toBeNull();
+    const rowId = inserted!.id as string;
+
+    const { data: seenByB, error: selectErrorB } = await clientB
+      .from("user_tappa")
+      .select()
+      .eq("id", rowId);
+    expect(selectErrorB).toBeNull();
+    expect(seenByB).toHaveLength(1);
+
+    const { data: updatedByB, error: updateErrorB } = await clientB
+      .from("user_tappa")
+      .update({ data_completamento: "2026-01-01" })
+      .eq("id", rowId)
+      .select();
+    expect(updateErrorB).toBeNull();
+    expect(updatedByB).toEqual([]);
+
+    const { error: deleteErrorB } = await clientB
+      .from("user_tappa")
+      .delete()
+      .eq("id", rowId);
+    expect(deleteErrorB).toBeNull();
+
+    const { data: stillThereForA, error: selectErrorA } = await clientA
+      .from("user_tappa")
+      .select()
+      .eq("id", rowId)
+      .single();
+    expect(selectErrorA).toBeNull();
+    expect(stillThereForA).not.toBeNull();
+
+    await clientA.from("user_tappa").delete().eq("id", rowId);
+  });
 });

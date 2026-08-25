@@ -80,7 +80,10 @@ export function ImpostazioniSurface() {
  */
 function MaestroSection() {
   const loadProfiloMaestro = useCallback(() => loadMaestroProfilo(), []);
-  const { data, reload } = useSurfaceData("maestroProfilo", loadProfiloMaestro);
+  const { data, loading, reload } = useSurfaceData(
+    "maestroProfilo",
+    loadProfiloMaestro,
+  );
   const [state, formAction, pending] = useActionState<
     SalvaMaestroProfiloState | null,
     FormData
@@ -95,9 +98,15 @@ function MaestroSection() {
     }
   }, [state, reload]);
 
+  // `data` è `null` sia prima del primo caricamento sia a caricamento
+  // concluso quando l'utente non ha ancora mai compilato questa sezione
+  // (nessuna riga `maestro_profilo`, caso normale al primo utilizzo): solo
+  // `loading` distingue i due casi. Confondere le due cose lasciava la
+  // sezione bloccata su "Leggo la sezione…" per sempre per chiunque non
+  // avesse ancora fatto l'opt-in.
   return (
     <PanelSection title="Maestro di Specialità">
-      {!data ? (
+      {loading ? (
         <SurfaceLoading label="Leggo la sezione…" />
       ) : (
         <MaestroForm
@@ -117,17 +126,26 @@ const fieldStyle = {
   color: "var(--ink)",
 } as const;
 
+/** Nessuna riga `maestro_profilo` ancora: prima apertura della sezione. */
+const MAESTRO_PROFILO_VUOTO: MaestroProfiloData = {
+  id: "",
+  visibile: false,
+  disponibile: false,
+  specialitaIds: [],
+};
+
 function MaestroForm({
   data,
   formAction,
   pending,
   state,
 }: {
-  data: MaestroProfiloData;
+  data: MaestroProfiloData | null;
   formAction: (formData: FormData) => void;
   pending: boolean;
   state: SalvaMaestroProfiloState | null;
 }) {
+  const valori = data ?? MAESTRO_PROFILO_VUOTO;
   const loadCatalogoSpecialita = useCallback(
     () => loadCatalogo("specialita"),
     [],
@@ -146,7 +164,11 @@ function MaestroForm({
       </p>
 
       <label className="flex items-center gap-2 font-sans text-sm">
-        <input type="checkbox" name="visibile" defaultChecked={data.visibile} />
+        <input
+          type="checkbox"
+          name="visibile"
+          defaultChecked={valori.visibile}
+        />
         Rendimi ricercabile come Maestro
       </label>
 
@@ -156,7 +178,7 @@ function MaestroForm({
           name="specialitaId"
           multiple
           size={6}
-          defaultValue={data.specialitaIds}
+          defaultValue={valori.specialitaIds}
           className="rounded-[2px] p-2 text-sm"
           style={fieldStyle}
         >
@@ -180,7 +202,7 @@ function MaestroForm({
           <input
             name="regione"
             type="text"
-            defaultValue={data.regione}
+            defaultValue={valori.regione}
             className="rounded-[2px] p-2 text-sm"
             style={fieldStyle}
           />
@@ -190,7 +212,7 @@ function MaestroForm({
           <input
             name="zona"
             type="text"
-            defaultValue={data.zona}
+            defaultValue={valori.zona}
             className="rounded-[2px] p-2 text-sm"
             style={fieldStyle}
           />
@@ -202,7 +224,7 @@ function MaestroForm({
         <input
           name="localita"
           type="text"
-          defaultValue={data.localita}
+          defaultValue={valori.localita}
           className="rounded-[2px] p-2 text-sm"
           style={fieldStyle}
         />
@@ -212,7 +234,7 @@ function MaestroForm({
         <input
           type="checkbox"
           name="disponibile"
-          defaultChecked={data.disponibile}
+          defaultChecked={valori.disponibile}
         />
         Disponibile ad accompagnare nuovi E/G
       </label>

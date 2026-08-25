@@ -39,11 +39,20 @@ async function getNoteByReference(
   return map;
 }
 
-function maestroNome(row: {
-  maestro_esterno: { nome: string } | null;
-  maestro_profile: { nome: string } | null;
-}): string | undefined {
-  return row.maestro_esterno?.nome ?? row.maestro_profile?.nome ?? undefined;
+function maestroNome(
+  row: {
+    maestro_esterno: { nome: string } | null;
+    maestro_profile_id: string | null;
+  },
+  maestriInterni: Map<string, string>,
+): string | undefined {
+  return (
+    row.maestro_esterno?.nome ??
+    (row.maestro_profile_id
+      ? maestriInterni.get(row.maestro_profile_id)
+      : undefined) ??
+    undefined
+  );
 }
 
 /**
@@ -70,26 +79,38 @@ export async function getTableCards(
   }
   if (!user) return [];
 
-  const [specialitaRes, competenzaRes, tappaRes] = await Promise.all([
-    supabase
-      .from("user_specialita")
-      .select(
-        "stato, data_inizio, data_completamento, specialita:specialita_id(id, slug, nome, immagine_path), maestro_esterno:maestro_esterno_id(nome), maestro_profile:maestro_profile_id(nome)",
-      )
-      .eq("profile_id", user.id),
-    supabase
-      .from("user_competenza")
-      .select(
-        "stato, data_inizio, data_completamento, competenza:competenza_id(id, slug, nome), maestro_esterno:maestro_esterno_id(nome), maestro_profile:maestro_profile_id(nome)",
-      )
-      .eq("profile_id", user.id),
-    supabase
-      .from("user_tappa")
-      .select(
-        "data_inizio, data_completamento, tappa:tappa_id(id, slug, nome, immagine_path)",
-      )
-      .eq("profile_id", user.id),
-  ]);
+  const [specialitaRes, competenzaRes, tappaRes, maestriInterniRes] =
+    await Promise.all([
+      supabase
+        .from("user_specialita")
+        .select(
+          "stato, data_inizio, data_completamento, specialita:specialita_id(id, slug, nome, immagine_path), maestro_esterno:maestro_esterno_id(nome), maestro_profile_id",
+        )
+        .eq("profile_id", user.id),
+      supabase
+        .from("user_competenza")
+        .select(
+          "stato, data_inizio, data_completamento, competenza:competenza_id(id, slug, nome), maestro_esterno:maestro_esterno_id(nome), maestro_profile_id",
+        )
+        .eq("profile_id", user.id),
+      supabase
+        .from("user_tappa")
+        .select(
+          "data_inizio, data_completamento, tappa:tappa_id(id, slug, nome, immagine_path)",
+        )
+        .eq("profile_id", user.id),
+      // Il nome di un Maestro interno non è leggibile via embed diretto su
+      // `profiles` (RLS, P10-T01): funzione dedicata, stesso pattern di
+      // `membri_reparto()`/`cerca_maestri()` — vedi la migrazione
+      // `maestro_interno_nome_visibile.sql`.
+      supabase.rpc("maestri_interni_nomi"),
+    ]);
+
+  const maestriInterni = new Map(
+    (
+      (maestriInterniRes.data ?? []) as { profile_id: string; nome: string }[]
+    ).map((m) => [m.profile_id, m.nome] as const),
+  );
 
   const cards: CardData[] = [];
 
@@ -104,7 +125,7 @@ export async function getTableCards(
       immagine_path: string | null;
     } | null;
     maestro_esterno: { nome: string } | null;
-    maestro_profile: { nome: string } | null;
+    maestro_profile_id: string | null;
   };
   const specialitaRows = (specialitaRes.data ??
     []) as unknown as SpecialitaRow[];
@@ -128,7 +149,7 @@ export async function getTableCards(
       dataInizio: row.data_inizio,
       dataCompletamento: row.data_completamento ?? undefined,
       note: specialitaNote.get(row.specialita.id) ?? [],
-      maestroNome: maestroNome(row),
+      maestroNome: maestroNome(row, maestriInterni),
     });
   }
 
@@ -138,7 +159,7 @@ export async function getTableCards(
     data_completamento: string | null;
     competenza: { id: string; slug: string; nome: string } | null;
     maestro_esterno: { nome: string } | null;
-    maestro_profile: { nome: string } | null;
+    maestro_profile_id: string | null;
   };
   const competenzaRows = (competenzaRes.data ??
     []) as unknown as CompetenzaRow[];
@@ -161,7 +182,7 @@ export async function getTableCards(
       dataInizio: row.data_inizio,
       dataCompletamento: row.data_completamento ?? undefined,
       note: competenzaNote.get(row.competenza.id) ?? [],
-      maestroNome: maestroNome(row),
+      maestroNome: maestroNome(row, maestriInterni),
     });
   }
 
